@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Packing List</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f5f5f4;
+      line-height: 1.5;
+    }
+
+    /* App Layout */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Left Sidebar */
+    .left-sidebar {
+      width: 140px;
+      background: #fafaf9;
+      border-right: 1px solid #e7e5e4;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      color: #57534e;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s;
+    }
+
+    .nav-item:hover {
+      background: #f5f5f4;
+      color: #1c1917;
+    }
+
+    .nav-item.active {
+      background: #e7e5e4;
+      color: #1c1917;
+      font-weight: 600;
+    }
+
+    .nav-item-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid #e7e5e4;
+    }
+
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #78716c;
+      font-size: 13px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+
+    .settings-btn:hover {
+      color: #1c1917;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 140px;
+      padding: 24px 32px;
+      min-height: 100vh;
+    }
+
+    .main-content.with-sidebar {
+      margin-right: 300px;
+    }
+
+    /* Right Sidebar */
+    .right-sidebar {
+      width: 300px;
+      background: #ffffff;
+      border-left: 1px solid #e7e5e4;
+      padding: 24px;
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1c1917;
+    }
+
+    .page-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* List Selector */
+    .list-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .list-dropdown {
+      padding: 8px 12px;
+      border: 1px solid #e7e5e4;
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1c1917;
+      cursor: pointer;
+      min-width: 180px;
+    }
+
+    .list-dropdown:focus {
+      outline: none;
+      border-color: #a8a29e;
+    }
+
+    .list-options-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e7e5e4;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 16px;
+      color: #57534e;
+    }
+
+    .list-options-btn:hover {
+      background: #f5f5f4;
+    }
+
+    /* Category Card */
+    .category-card {
+      background: #ffffff;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .category-header:hover {
+      background: #fafaf9;
+      border-radius: 12px;
+    }
+
+    .category-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .collapse-icon {
+      color: #a8a29e;
+      font-size: 12px;
+      transition: transform 0.2s;
+      width: 16px;
+    }
+
+    .collapse-icon.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .category-emoji {
+      font-size: 18px;
+    }
+
+    .category-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: #1c1917;
+    }
+
+    .category-header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .category-weight {
+      font-size: 14px;
+      font-weight: 500;
+      color: #78716c;
+    }
+
+    /* Items Table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .items-table th {
+      text-align: left;
+      padding: 8px 20px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #a8a29e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .items-table td {
+      padding: 12px 20px;
+      border-bottom: 1px solid #f5f5f4;
+      color: #44403c;
+    }
+
+    .items-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .items-table tr:hover td {
+      background: #fafaf9;
+    }
+
+    .item-name {
+      font-weight: 500;
+      color: #1c1917;
+    }
+
+    .item-description {
+      color: #78716c;
+    }
+
+    .col-name { width: 25%; }
+    .col-description { width: 35%; }
+    .col-qty { width: 10%; text-align: center; }
+    .col-weight { width: 12%; text-align: right; }
+    .col-total { width: 12%; text-align: right; }
+    .col-actions { width: 6%; text-align: center; }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #d6d3d1;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .items-table tr:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .delete-btn:hover {
+      color: #ef4444;
+    }
+
+    /* Add Item Row */
+    .add-item-row {
+      cursor: pointer;
+    }
+
+    .add-item-row td {
+      color: #a8a29e;
+      padding: 12px 20px;
+    }
+
+    .add-item-row:hover td {
+      color: #78716c;
+      background: transparent !important;
+    }
+
+    .add-item-text {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Add Category Button */
+    .add-category-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px;
+      color: #a8a29e;
+      font-size: 14px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .add-category-btn:hover {
+      color: #78716c;
+    }
+
+    /* Options Menu */
+    .options-btn {
+      background: none;
+      border: none;
+      color: #d6d3d1;
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 18px;
+      letter-spacing: 2px;
+      border-radius: 4px;
+    }
+
+    .options-btn:hover {
+      background: #f5f5f4;
+      color: #78716c;
+    }
+
+    .options-dropdown {
+      position: relative;
+      z-index: 1;
+    }
+
+    .options-dropdown.is-open {
+      z-index: 9999;
+    }
+
+    .options-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: white;
+      border: 1px solid #e7e5e4;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+      min-width: 180px;
+      overflow: hidden;
+      z-index: 9999;
+    }
+
+    .options-menu-item {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #44403c;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .options-menu-item:hover {
+      background: #f5f5f4;
+    }
+
+    .options-menu-item.danger {
+      color: #ef4444;
+    }
+
+    .options-menu-divider {
+      height: 1px;
+      background: #e7e5e4;
+      margin: 4px 0;
+    }
+
+    /* Right Sidebar Content */
+    .chart-section {
+      margin-bottom: 32px;
+    }
+
+    .chart-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 180px;
+      margin-bottom: 16px;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      justify-content: center;
+      font-size: 10px;
+      color: #78716c;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-color {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    /* Weight Summary */
+    .weight-summary {
+      background: #fafaf9;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .weight-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+
+    .weight-row:not(:last-child) {
+      border-bottom: 1px solid #e7e5e4;
+    }
+
+    .weight-row-label {
+      font-size: 14px;
+      color: #57534e;
+    }
+
+    .weight-row-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1c1917;
+    }
+
+    .weight-row.total .weight-row-label,
+    .weight-row.total .weight-row-value {
+      font-weight: 600;
+    }
+
+    .weight-row.separate {
+      margin-top: 8px;
+      padding-top: 16px;
+      border-top: 1px solid #d6d3d1;
+    }
+
+    /* Editable Cell */
+    .editable-cell {
+      cursor: text;
+      padding: 2px 4px;
+      margin: -2px -4px;
+      border-radius: 4px;
+    }
+
+    .editable-cell:hover {
+      background: #f5f5f4;
+    }
+
+    .editable-cell input {
+      width: 100%;
+      padding: 4px 8px;
+      border: 1px solid #d6d3d1;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .editable-cell input:focus {
+      border-color: #a8a29e;
+      box-shadow: 0 0 0 2px rgba(168, 162, 158, 0.2);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid #e7e5e4;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1c1917;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #a8a29e;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .modal-close:hover {
+      color: #57534e;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid #e7e5e4;
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #57534e;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e7e5e4;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1c1917;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #a8a29e;
+      box-shadow: 0 0 0 2px rgba(168, 162, 158, 0.2);
+    }
+
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: #1c1917;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #292524;
+    }
+
+    .btn-secondary {
+      background: #f5f5f4;
+      color: #57534e;
+      border: 1px solid #e7e5e4;
+    }
+
+    .btn-secondary:hover {
+      background: #e7e5e4;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    /* ==================== Dashboard Styles ==================== */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .dashboard-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .dashboard-card-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #78716c;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dashboard-card-body {
+      padding: 20px;
+    }
+
+    .trip-date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #57534e;
+      margin-bottom: 16px;
+    }
+
+    .trip-date-row span {
+      color: #1c1917;
+      font-weight: 500;
+    }
+
+    .hike-selector {
+      margin-bottom: 20px;
+    }
+
+    .hike-selector-label {
+      font-size: 11px;
+      color: #a8a29e;
+      margin-bottom: 4px;
+    }
+
+    .hike-name {
+      font-size: 28px;
+      font-weight: 600;
+      color: #1c1917;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hike-name select {
+      font-size: 28px;
+      font-weight: 600;
+      color: #1c1917;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding-right: 24px;
+    }
+
+    .hike-description {
+      font-size: 14px;
+      color: #57534e;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .hike-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: #57534e;
+    }
+
+    .hike-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Map placeholder */
+    .map-placeholder {
+      height: 200px;
+      background: linear-gradient(135deg, #d4e4d4 0%, #a8c8a8 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #57534e;
+      font-size: 14px;
+      margin: 16px 0;
+    }
+
+    /* Gear Section in Dashboard */
+    .gear-section {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .gear-section:last-child {
+      border-bottom: none;
+    }
+
+    .gear-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .gear-row-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .gear-row-label {
+      font-size: 14px;
+      color: #1c1917;
+      min-width: 50px;
+    }
+
+    .gear-row-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1c1917;
+    }
+
+    /* Food Menu in Dashboard */
+    .food-day {
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .food-day:last-child {
+      border-bottom: none;
+    }
+
+    .food-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .food-day-header:hover {
+      background: #fafaf9;
+    }
+
+    .food-day-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .food-day-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1c1917;
+    }
+
+    .food-day-weight {
+      font-size: 14px;
+      color: #78716c;
+    }
+
+    .food-day-content {
+      padding: 0 20px 16px 20px;
+    }
+
+    .food-meal-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .food-meal-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #a8a29e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .food-meal-table td {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #44403c;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .food-meal-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .meal-type-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meal-dropdown {
+      padding: 4px 8px;
+      border: 1px solid #e7e5e4;
+      border-radius: 4px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .meal-dropdown:focus {
+      outline: none;
+      border-color: #a8a29e;
+    }
+
+    /* ==================== Hikes Styles ==================== */
+    .hikes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .hike-card {
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .hike-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .hike-card-image {
+      height: 160px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .hike-card-image-placeholder {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      background: linear-gradient(135deg, #d6d3d1 0%, #a8a29e 100%);
+    }
+
+    .hike-card-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .hike-card-content {
+      padding: 16px 20px;
+    }
+
+    .hike-card-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 8px;
+    }
+
+    .hike-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: #78716c;
+    }
+
+    .hike-card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Hike Detail */
+    .hike-detail {
+      max-width: 800px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 0;
+      color: #78716c;
+      font-size: 14px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+
+    .back-btn:hover {
+      color: #1c1917;
+    }
+
+    .hike-hero {
+      position: relative;
+      height: 280px;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .hike-hero-placeholder {
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      background: linear-gradient(135deg, #d6d3d1 0%, #a8a29e 100%);
+      border-radius: 16px;
+      margin-bottom: 24px;
+    }
+
+    .hike-hero-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 32px 24px 24px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+      color: white;
+    }
+
+    .hike-hero-title {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .hike-detail-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .hike-detail-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 12px;
+    }
+
+    .hike-detail-text {
+      font-size: 14px;
+      color: #57534e;
+      line-height: 1.7;
+    }
+
+    .hike-detail-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    .hike-stat-item {
+      text-align: center;
+      padding: 16px;
+      background: #fafaf9;
+      border-radius: 8px;
+    }
+
+    .hike-stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1c1917;
+      margin-bottom: 4px;
+    }
+
+    .hike-stat-label {
+      font-size: 12px;
+      color: #78716c;
+    }
+
+    /* Food View Styles */
+    .recipes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .recipes-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1c1917;
+    }
+
+    .recipes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .recipe-card {
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .recipe-card-image {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      position: relative;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .recipe-card-image.breakfast { background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%); }
+    .recipe-card-image.lunch { background: linear-gradient(135deg, #dbeafe 0%, #60a5fa 100%); }
+    .recipe-card-image.dinner { background: linear-gradient(135deg, #fce7f3 0%, #f472b6 100%); }
+    .recipe-card-image.snack { background: linear-gradient(135deg, #d1fae5 0%, #34d399 100%); }
+
+    .recipe-type-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    .recipe-card-content {
+      padding: 16px;
+    }
+
+    .recipe-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .recipe-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1c1917;
+    }
+
+    .recipe-type-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: capitalize;
+      backdrop-filter: blur(4px);
+    }
+
+    .recipe-type-badge.breakfast { background: rgba(254, 243, 199, 0.9); color: #92400e; }
+    .recipe-type-badge.lunch { background: rgba(219, 234, 254, 0.9); color: #1e40af; }
+    .recipe-type-badge.dinner { background: rgba(252, 231, 243, 0.9); color: #9d174d; }
+    .recipe-type-badge.snack { background: rgba(209, 250, 229, 0.9); color: #065f46; }
+
+    .recipe-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #78716c;
+      margin-bottom: 12px;
+    }
+
+    .recipe-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Ingredients table in modal */
+    .ingredients-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    .ingredients-table th {
+      text-align: left;
+      padding: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #a8a29e;
+      text-transform: uppercase;
+      background: #fafaf9;
+    }
+
+    .ingredients-table td {
+      padding: 8px;
+      border-bottom: 1px solid #f5f5f4;
+    }
+
+    .ingredients-table input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #e7e5e4;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: #a8a29e;
+    }
+
+    .empty-state-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #78716c;
+      margin-bottom: 8px;
+    }
+
+    /* Trip form styles */
+    .trip-form-section {
+      margin-bottom: 24px;
+    }
+
+    .trip-form-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #57534e;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ==================== Utility Functions ====================
+    const generateId = () => Math.random().toString(36).substr(2, 9);
+
+    const formatWeight = (grams) => {
+      if (grams >= 1000) {
+        return `${(grams / 1000).toFixed(2)} kg`;
+      }
+      return `${Math.round(grams)}g`;
+    };
+
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    // ==================== Category Icons ====================
+    const categoryIcons = {
+      'Backpack': '🎒',
+      'Sleep & Shelter': '⛺',
+      'Electronics': '🔋',
+      'Food (gear)': '🍳',
+      'Clothes (storage)': '👕',
+      'Clothes (wear)': '🧥',
+      'Bits': '🧰',
+      'default': '📦'
+    };
+
+    const getCategoryIcon = (name) => categoryIcons[name] || categoryIcons['default'];
+
+    // ==================== Default Data ====================
+    const defaultGearCategories = [
+      { id: generateId(), name: 'Backpack', icon: '🎒', items: [], collapsed: false },
+      { id: generateId(), name: 'Sleep & Shelter', icon: '⛺', items: [], collapsed: false },
+      { id: generateId(), name: 'Electronics', icon: '🔋', items: [], collapsed: false },
+      { id: generateId(), name: 'Food (gear)', icon: '🍳', items: [], collapsed: false },
+      { id: generateId(), name: 'Clothes (storage)', icon: '👕', items: [], collapsed: false },
+      { id: generateId(), name: 'Bits', icon: '🧰', items: [], collapsed: false },
+      { id: generateId(), name: 'Clothes (wear)', icon: '🧥', items: [], collapsed: false },
+    ];
+
+    const createDefaultGearList = (name = 'My Gear List') => ({
+      id: generateId(),
+      name,
+      createdAt: new Date().toISOString(),
+      categories: defaultGearCategories.map(cat => ({ ...cat, id: generateId(), items: [] }))
+    });
+
+    // ==================== Default Recipes ====================
+    const defaultRecipes = [
+      // BREAKFAST (7 recipes)
+      {
+        id: generateId(),
+        name: 'Overnight Oats with Nuts',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Instant oats', weightGrams: 80, calories: 300 },
+          { id: generateId(), name: 'Powdered milk', weightGrams: 20, calories: 100 },
+          { id: generateId(), name: 'Mixed nuts', weightGrams: 30, calories: 180 },
+          { id: generateId(), name: 'Dried cranberries', weightGrams: 20, calories: 65 },
+          { id: generateId(), name: 'Chia seeds', weightGrams: 10, calories: 50 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Peanut Butter Banana Wrap',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1619096252214-ef06c45683e3?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Tortilla wrap', weightGrams: 60, calories: 180 },
+          { id: generateId(), name: 'Peanut butter', weightGrams: 40, calories: 240 },
+          { id: generateId(), name: 'Banana chips', weightGrams: 30, calories: 150 },
+          { id: generateId(), name: 'Honey packet', weightGrams: 15, calories: 45 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Granola Power Bowl',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Granola', weightGrams: 100, calories: 450 },
+          { id: generateId(), name: 'Powdered coconut milk', weightGrams: 25, calories: 120 },
+          { id: generateId(), name: 'Dried mango', weightGrams: 25, calories: 80 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Instant Pancake Mix',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Pancake mix', weightGrams: 80, calories: 280 },
+          { id: generateId(), name: 'Powdered egg', weightGrams: 15, calories: 80 },
+          { id: generateId(), name: 'Maple syrup packet', weightGrams: 30, calories: 80 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Muesli with Apple',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1571748982800-fa51082c2224?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Muesli', weightGrams: 90, calories: 340 },
+          { id: generateId(), name: 'Dried apple', weightGrams: 25, calories: 60 },
+          { id: generateId(), name: 'Powdered milk', weightGrams: 20, calories: 100 },
+          { id: generateId(), name: 'Cinnamon sugar', weightGrams: 5, calories: 20 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Breakfast Couscous',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Couscous', weightGrams: 70, calories: 250 },
+          { id: generateId(), name: 'Dried apricots', weightGrams: 30, calories: 70 },
+          { id: generateId(), name: 'Almonds', weightGrams: 25, calories: 145 },
+          { id: generateId(), name: 'Brown sugar', weightGrams: 15, calories: 55 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Protein Porridge',
+        type: 'breakfast',
+        imageUrl: 'https://images.unsplash.com/photo-1495214783159-3503fd1b572d?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Oat flour', weightGrams: 60, calories: 230 },
+          { id: generateId(), name: 'Protein powder', weightGrams: 30, calories: 120 },
+          { id: generateId(), name: 'Peanut butter powder', weightGrams: 20, calories: 90 },
+          { id: generateId(), name: 'Dried berries', weightGrams: 15, calories: 45 }
+        ]
+      },
+      // LUNCH (7 recipes)
+      {
+        id: generateId(),
+        name: 'Tuna Tortilla Wrap',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Tuna pouch', weightGrams: 75, calories: 90 },
+          { id: generateId(), name: 'Tortilla wrap', weightGrams: 60, calories: 180 },
+          { id: generateId(), name: 'Mayo packet', weightGrams: 15, calories: 100 },
+          { id: generateId(), name: 'Dried vegetables', weightGrams: 10, calories: 30 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Hummus & Crackers',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1577805947697-89e18249d767?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Hummus powder', weightGrams: 50, calories: 200 },
+          { id: generateId(), name: 'Crackers', weightGrams: 60, calories: 280 },
+          { id: generateId(), name: 'Olive oil packet', weightGrams: 10, calories: 90 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Salami & Cheese Roll-up',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Hard salami', weightGrams: 60, calories: 280 },
+          { id: generateId(), name: 'Hard cheese', weightGrams: 50, calories: 200 },
+          { id: generateId(), name: 'Tortilla', weightGrams: 60, calories: 180 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Pita with Falafel Mix',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1593001874117-c99c800e3eb4?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Pita bread', weightGrams: 60, calories: 165 },
+          { id: generateId(), name: 'Falafel mix', weightGrams: 50, calories: 180 },
+          { id: generateId(), name: 'Tahini powder', weightGrams: 20, calories: 120 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Nut Butter Bagel',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1592767818438-0595cee3b36e?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Mini bagel', weightGrams: 70, calories: 190 },
+          { id: generateId(), name: 'Almond butter', weightGrams: 40, calories: 260 },
+          { id: generateId(), name: 'Honey', weightGrams: 15, calories: 45 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Mediterranean Couscous',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Couscous', weightGrams: 80, calories: 280 },
+          { id: generateId(), name: 'Sun-dried tomatoes', weightGrams: 20, calories: 50 },
+          { id: generateId(), name: 'Olive oil', weightGrams: 15, calories: 130 },
+          { id: generateId(), name: 'Feta powder', weightGrams: 15, calories: 60 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Chicken Salad Wrap',
+        type: 'lunch',
+        imageUrl: 'https://images.unsplash.com/photo-1600850056064-a8b380df8395?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Chicken pouch', weightGrams: 75, calories: 110 },
+          { id: generateId(), name: 'Tortilla', weightGrams: 60, calories: 180 },
+          { id: generateId(), name: 'Mayo packet', weightGrams: 15, calories: 100 },
+          { id: generateId(), name: 'Dried onion flakes', weightGrams: 5, calories: 15 }
+        ]
+      },
+      // DINNER (7 recipes)
+      {
+        id: generateId(),
+        name: 'Instant Ramen Upgrade',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Ramen noodles', weightGrams: 85, calories: 380 },
+          { id: generateId(), name: 'Dried vegetables', weightGrams: 15, calories: 40 },
+          { id: generateId(), name: 'Peanut butter', weightGrams: 20, calories: 120 },
+          { id: generateId(), name: 'Soy sauce packet', weightGrams: 10, calories: 5 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Backcountry Mac & Cheese',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1543339494-b4cd4f7ba686?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Pasta', weightGrams: 100, calories: 350 },
+          { id: generateId(), name: 'Cheese powder', weightGrams: 30, calories: 150 },
+          { id: generateId(), name: 'Powdered milk', weightGrams: 20, calories: 100 },
+          { id: generateId(), name: 'Bacon bits', weightGrams: 20, calories: 100 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Coconut Curry Rice',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Instant rice', weightGrams: 90, calories: 320 },
+          { id: generateId(), name: 'Coconut milk powder', weightGrams: 30, calories: 150 },
+          { id: generateId(), name: 'Curry powder', weightGrams: 5, calories: 15 },
+          { id: generateId(), name: 'Dried peas', weightGrams: 25, calories: 85 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Mashed Potato Bowl',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1600984575359-310ae7b6bdf2?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Instant mashed potatoes', weightGrams: 80, calories: 280 },
+          { id: generateId(), name: 'Bacon bits', weightGrams: 25, calories: 130 },
+          { id: generateId(), name: 'Cheese powder', weightGrams: 20, calories: 100 },
+          { id: generateId(), name: 'Dried chives', weightGrams: 5, calories: 5 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Lentil Soup Mix',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Red lentils', weightGrams: 80, calories: 280 },
+          { id: generateId(), name: 'Dried vegetables', weightGrams: 20, calories: 50 },
+          { id: generateId(), name: 'Spice mix', weightGrams: 5, calories: 10 },
+          { id: generateId(), name: 'Olive oil', weightGrams: 15, calories: 130 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Pasta Primavera',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Angel hair pasta', weightGrams: 100, calories: 350 },
+          { id: generateId(), name: 'Dried vegetables', weightGrams: 25, calories: 60 },
+          { id: generateId(), name: 'Parmesan powder', weightGrams: 20, calories: 80 },
+          { id: generateId(), name: 'Olive oil', weightGrams: 15, calories: 130 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Quinoa Mexican Bowl',
+        type: 'dinner',
+        imageUrl: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Instant quinoa', weightGrams: 80, calories: 290 },
+          { id: generateId(), name: 'Black bean flakes', weightGrams: 30, calories: 100 },
+          { id: generateId(), name: 'Taco seasoning', weightGrams: 10, calories: 25 },
+          { id: generateId(), name: 'Tortilla chips', weightGrams: 30, calories: 150 }
+        ]
+      },
+      // SNACKS (4 recipes)
+      {
+        id: generateId(),
+        name: 'Trail Mix Energy',
+        type: 'snack',
+        imageUrl: 'https://images.unsplash.com/photo-1604068549290-dea0e4a305ca?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Mixed nuts', weightGrams: 40, calories: 240 },
+          { id: generateId(), name: 'Dark chocolate chips', weightGrams: 20, calories: 110 },
+          { id: generateId(), name: 'Dried fruit', weightGrams: 25, calories: 70 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Homemade Energy Bar',
+        type: 'snack',
+        imageUrl: 'https://images.unsplash.com/photo-1622484212850-eb596d769edc?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Oats', weightGrams: 30, calories: 115 },
+          { id: generateId(), name: 'Peanut butter', weightGrams: 25, calories: 150 },
+          { id: generateId(), name: 'Honey', weightGrams: 20, calories: 60 },
+          { id: generateId(), name: 'Chocolate chips', weightGrams: 15, calories: 80 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Nut Butter Packet',
+        type: 'snack',
+        imageUrl: 'https://images.unsplash.com/photo-1612187209234-a5e07f618388?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Almond butter', weightGrams: 35, calories: 210 },
+          { id: generateId(), name: 'Pretzel sticks', weightGrams: 30, calories: 110 }
+        ]
+      },
+      {
+        id: generateId(),
+        name: 'Dried Fruit & Coconut',
+        type: 'snack',
+        imageUrl: 'https://images.unsplash.com/photo-1596591868231-05e882a04b4b?w=400&h=300&fit=crop',
+        ingredients: [
+          { id: generateId(), name: 'Dried mango', weightGrams: 35, calories: 110 },
+          { id: generateId(), name: 'Coconut flakes', weightGrams: 25, calories: 160 },
+          { id: generateId(), name: 'Macadamia nuts', weightGrams: 20, calories: 145 }
+        ]
+      }
+    ];
+
+    // ==================== Local Storage ====================
+    const loadFromStorage = (key, defaultValue) => {
+      try {
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : defaultValue;
+      } catch (e) {
+        return defaultValue;
+      }
+    };
+
+    const saveToStorage = (key, value) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        console.error('Storage error:', e);
+      }
+    };
+
+    // ==================== Shared Components ====================
+    const EditableCell = ({ value, onChange, type = 'text', placeholder = '', className = '' }) => {
+      const [isEditing, setIsEditing] = useState(false);
+      const [tempValue, setTempValue] = useState(value);
+      const inputRef = useRef(null);
+
+      useEffect(() => { setTempValue(value); }, [value]);
+      useEffect(() => {
+        if (isEditing && inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, [isEditing]);
+
+      const handleBlur = () => {
+        setIsEditing(false);
+        if (tempValue !== value) {
+          onChange(type === 'number' ? parseFloat(tempValue) || 0 : tempValue);
+        }
+      };
+
+      const handleKeyDown = (e) => {
+        if (e.key === 'Enter') handleBlur();
+        if (e.key === 'Escape') { setTempValue(value); setIsEditing(false); }
+      };
+
+      if (isEditing) {
+        return (
+          <div className="editable-cell">
+            <input ref={inputRef} type={type} value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+              onBlur={handleBlur} onKeyDown={handleKeyDown} />
+          </div>
+        );
+      }
+
+      return (
+        <div className={`editable-cell ${className}`} onClick={() => setIsEditing(true)}>
+          {value || <span style={{ color: '#a8a29e' }}>{placeholder || '—'}</span>}
+        </div>
+      );
+    };
+
+    const OptionsDropdown = ({ options, trigger }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      const ref = useRef(null);
+
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (ref.current && !ref.current.contains(e.target)) setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      return (
+        <div className={`options-dropdown ${isOpen ? 'is-open' : ''}`} ref={ref}>
+          {trigger ? (
+            <div onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>{trigger}</div>
+          ) : (
+            <button className="options-btn" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>•••</button>
+          )}
+          {isOpen && (
+            <div className="options-menu animate-fade-in">
+              {options.map((opt, i) =>
+                opt.divider ? <div key={i} className="options-menu-divider" /> : (
+                  <button key={i} className={`options-menu-item ${opt.danger ? 'danger' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); opt.onClick(); setIsOpen(false); }}>
+                    {opt.label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const Modal = ({ title, children, onClose, footer }) => (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal animate-fade-in" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2 className="modal-title">{title}</h2>
+            <button className="modal-close" onClick={onClose}>×</button>
+          </div>
+          <div className="modal-body">{children}</div>
+          {footer && <div className="modal-footer">{footer}</div>}
+        </div>
+      </div>
+    );
+
+    // ==================== Weight Chart ====================
+    const WeightChart = ({ categories }) => {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+      const colors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4', '#3b82f6'];
+
+      const getCategoryWeight = (cat) => cat.items.reduce((sum, item) =>
+        sum + ((item.weight || 0) * (item.quantity || 1)), 0);
+
+      const gear = categories.filter(c => c.name !== 'Clothes (wear)').reduce((sum, c) => sum + getCategoryWeight(c), 0);
+      const clothesWear = categories.filter(c => c.name === 'Clothes (wear)').reduce((sum, c) => sum + getCategoryWeight(c), 0);
+
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        const data = categories.map((cat, i) => ({
+          label: cat.name, weight: getCategoryWeight(cat), color: colors[i % colors.length]
+        })).filter(d => d.weight > 0);
+
+        if (chartRef.current) chartRef.current.destroy();
+        chartRef.current = new Chart(canvasRef.current, {
+          type: 'pie',
+          data: {
+            labels: data.map(d => d.label),
+            datasets: [{ data: data.map(d => d.weight), backgroundColor: data.map(d => d.color), borderWidth: 0 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        return () => { if (chartRef.current) chartRef.current.destroy(); };
+      }, [categories]);
+
+      const legendData = categories.map((cat, i) => ({
+        name: cat.name, weight: getCategoryWeight(cat), color: colors[i % colors.length]
+      })).filter(d => d.weight > 0);
+
+      return (
+        <>
+          <div className="chart-section">
+            <h3 className="chart-title">Weight distribution</h3>
+            <div className="chart-container"><canvas ref={canvasRef}></canvas></div>
+            <div className="chart-legend">
+              {legendData.map((item, i) => (
+                <div key={i} className="legend-item">
+                  <div className="legend-color" style={{ background: item.color }}></div>
+                  <span>{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="weight-summary">
+            <div className="weight-row">
+              <span className="weight-row-label">Gear</span>
+              <span className="weight-row-value">{formatWeight(gear)}</span>
+            </div>
+            <div className="weight-row total">
+              <span className="weight-row-label">Total</span>
+              <span className="weight-row-value">{formatWeight(gear + clothesWear)}</span>
+            </div>
+            <div className="weight-row separate">
+              <span className="weight-row-label">Clothes (wear)</span>
+              <span className="weight-row-value">{formatWeight(clothesWear)}</span>
+            </div>
+          </div>
+        </>
+      );
+    };
+
+    // ==================== Category Component ====================
+    const Category = ({ category, onUpdate, onDelete, onAddItem, onUpdateItem, onDeleteItem }) => {
+      const [collapsed, setCollapsed] = useState(category.collapsed);
+
+      const getCategoryWeight = () => category.items.reduce((sum, item) =>
+        sum + ((item.weight || 0) * (item.quantity || 1)), 0);
+
+      const handleAddItem = () => {
+        onAddItem(category.id, {
+          id: generateId(), name: '', description: '', weight: 0, quantity: 1
+        });
+      };
+
+      return (
+        <div className="category-card">
+          <div className="category-header" onClick={() => setCollapsed(!collapsed)}>
+            <div className="category-header-left">
+              <span className={`collapse-icon ${collapsed ? 'collapsed' : ''}`}>›</span>
+              <span className="category-emoji">{category.icon}</span>
+              <span className="category-name">{category.name}</span>
+            </div>
+            <div className="category-header-right">
+              <span className="category-weight">{formatWeight(getCategoryWeight())}</span>
+              <OptionsDropdown options={[
+                { label: 'Rename', onClick: () => {
+                  const name = prompt('Category name:', category.name);
+                  if (name) onUpdate({ ...category, name });
+                }},
+                { label: 'Delete', onClick: () => onDelete(category.id), danger: true }
+              ]} />
+            </div>
+          </div>
+          {!collapsed && (
+            <table className="items-table">
+              <thead>
+                <tr>
+                  <th className="col-name">Name</th>
+                  <th className="col-description">Description</th>
+                  <th className="col-qty">Qty</th>
+                  <th className="col-weight">Weight</th>
+                  <th className="col-total">Total</th>
+                  <th className="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {category.items.map(item => (
+                  <tr key={item.id}>
+                    <td><EditableCell value={item.name} onChange={(v) => onUpdateItem(category.id, { ...item, name: v })} placeholder="Item name" className="item-name" /></td>
+                    <td><EditableCell value={item.description} onChange={(v) => onUpdateItem(category.id, { ...item, description: v })} placeholder="Description" className="item-description" /></td>
+                    <td style={{ textAlign: 'center' }}><EditableCell value={item.quantity || 1} onChange={(v) => onUpdateItem(category.id, { ...item, quantity: parseInt(v) || 1 })} type="number" /></td>
+                    <td style={{ textAlign: 'right' }}><EditableCell value={item.weight ? `${item.weight}g` : ''} onChange={(v) => onUpdateItem(category.id, { ...item, weight: parseFloat(v) || 0 })} placeholder="0g" /></td>
+                    <td style={{ textAlign: 'right', color: '#78716c' }}>{formatWeight((item.weight || 0) * (item.quantity || 1))}</td>
+                    <td><button className="delete-btn" onClick={() => onDeleteItem(category.id, item.id)}>×</button></td>
+                  </tr>
+                ))}
+                <tr className="add-item-row" onClick={handleAddItem}>
+                  <td colSpan="6"><div className="add-item-text"><span>+</span> Add new item</div></td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+        </div>
+      );
+    };
+
+    // ==================== Gear View ====================
+    const GearView = ({ lists, currentListId, onSelectList, onUpdateList, onCreateList, onDuplicateList, onDeleteList, onRenameList }) => {
+      const currentList = lists.find(l => l.id === currentListId);
+      const [showListMenu, setShowListMenu] = useState(false);
+
+      const handleCategoryUpdate = (updated) => {
+        const categories = currentList.categories.map(c => c.id === updated.id ? updated : c);
+        onUpdateList({ ...currentList, categories });
+      };
+
+      const handleCategoryDelete = (id) => {
+        if (confirm('Delete this category?')) {
+          onUpdateList({ ...currentList, categories: currentList.categories.filter(c => c.id !== id) });
+        }
+      };
+
+      const handleAddItem = (categoryId, item) => {
+        const categories = currentList.categories.map(c =>
+          c.id === categoryId ? { ...c, items: [...c.items, item] } : c
+        );
+        onUpdateList({ ...currentList, categories });
+      };
+
+      const handleUpdateItem = (categoryId, item) => {
+        const categories = currentList.categories.map(c =>
+          c.id === categoryId ? { ...c, items: c.items.map(i => i.id === item.id ? item : i) } : c
+        );
+        onUpdateList({ ...currentList, categories });
+      };
+
+      const handleDeleteItem = (categoryId, itemId) => {
+        const categories = currentList.categories.map(c =>
+          c.id === categoryId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c
+        );
+        onUpdateList({ ...currentList, categories });
+      };
+
+      const handleAddCategory = () => {
+        const name = prompt('Category name:');
+        if (name) {
+          const newCat = { id: generateId(), name, icon: '📦', items: [], collapsed: false };
+          onUpdateList({ ...currentList, categories: [...currentList.categories, newCat] });
+        }
+      };
+
+      const handleExportCSV = () => {
+        // CSV format: Item Name, Category, desc, qty, weight, unit, url, price, worn, consumable
+        let csv = 'Item Name,Category,desc,qty,weight,unit,url,price,worn,consumable\n';
+        currentList.categories.forEach(cat => {
+          cat.items.forEach(item => {
+            const worn = cat.name === 'Clothes (wear)' ? '1' : '0';
+            const consumable = item.consumable ? '1' : '0';
+            csv += `${item.name || ''},${cat.name},${item.description || ''},${item.quantity || 1},${item.weight || 0},gram,${item.url || ''},${item.price || 0},${worn},${consumable}\n`;
+          });
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentList.name}.csv`;
+        a.click();
+      };
+
+      const handleImportCSV = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = (e) => {
+          const file = e.target.files[0];
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const text = event.target.result;
+            const lines = text.split('\n');
+            const header = lines[0].toLowerCase();
+            const dataLines = lines.slice(1);
+            const categoryMap = {};
+
+            // Parse CSV - format: Item Name, Category, desc, qty, weight, unit, url, price, worn, consumable
+            dataLines.forEach(line => {
+              if (!line.trim()) return;
+
+              // Simple CSV parsing (handles basic cases)
+              const values = line.split(',').map(v => v.trim());
+              if (values.length < 5) return;
+
+              const [itemName, category, desc, qty, weight, unit, url, price, worn, consumable] = values;
+
+              if (!category) return;
+
+              // Normalize category name
+              let catName = category;
+
+              // Map common category variations
+              const catMapping = {
+                'sleep & shelter': 'Sleep & Shelter',
+                'pack': 'Backpack',
+                'electronics': 'Electronics',
+                'bits': 'Bits',
+                'food': 'Food (gear)',
+                'clothes': 'Clothes (storage)'
+              };
+
+              const lowerCat = catName.toLowerCase();
+              if (catMapping[lowerCat]) {
+                catName = catMapping[lowerCat];
+              }
+
+              if (!categoryMap[catName]) categoryMap[catName] = [];
+              categoryMap[catName].push({
+                id: generateId(),
+                name: itemName || '',
+                description: desc || '',
+                quantity: parseInt(qty) || 1,
+                weight: parseFloat(weight) || 0,
+                url: url || '',
+                price: parseFloat(price) || 0,
+                consumable: consumable === '1' || consumable === 'true'
+              });
+            });
+
+            // Build new categories list
+            const newCategories = currentList.categories.map(cat => ({
+              ...cat,
+              items: categoryMap[cat.name] ? [...cat.items, ...categoryMap[cat.name]] : cat.items
+            }));
+
+            // Add any new categories not in default list
+            Object.keys(categoryMap).forEach(catName => {
+              if (!newCategories.find(c => c.name === catName)) {
+                const icon = getCategoryIcon(catName);
+                newCategories.push({
+                  id: generateId(),
+                  name: catName,
+                  icon: icon,
+                  items: categoryMap[catName],
+                  collapsed: false
+                });
+              }
+            });
+
+            onUpdateList({ ...currentList, categories: newCategories });
+          };
+          reader.readAsText(file);
+        };
+        input.click();
+      };
+
+      if (!currentList) return null;
+
+      const gearCategories = currentList.categories.filter(c => c.name !== 'Clothes (wear)');
+      const wearCategories = currentList.categories.filter(c => c.name === 'Clothes (wear)');
+
+      return (
+        <>
+          <div className="page-header">
+            <h1 className="page-title">Gear</h1>
+            <div className="page-header-actions">
+              <div className="list-selector">
+                <select className="list-dropdown" value={currentListId} onChange={(e) => onSelectList(e.target.value)}>
+                  {lists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
+                </select>
+                <OptionsDropdown
+                  trigger={<button className="list-options-btn">•••</button>}
+                  options={[
+                    { label: 'Change list title', onClick: () => {
+                      const name = prompt('New list name:', currentList.name);
+                      if (name) onRenameList(currentListId, name);
+                    }},
+                    { label: 'Duplicate list', onClick: () => onDuplicateList(currentListId) },
+                    { divider: true },
+                    { label: 'Import CSV', onClick: handleImportCSV },
+                    { label: 'Export CSV', onClick: handleExportCSV },
+                    { divider: true },
+                    { label: 'Delete list', onClick: () => {
+                      if (lists.length > 1 && confirm('Delete this list?')) onDeleteList(currentListId);
+                    }, danger: true }
+                  ]}
+                />
+              </div>
+              <button className="btn btn-primary" onClick={onCreateList}>+ New List</button>
+            </div>
+          </div>
+
+          {gearCategories.map(cat => (
+            <Category key={cat.id} category={cat}
+              onUpdate={handleCategoryUpdate} onDelete={handleCategoryDelete}
+              onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onDeleteItem={handleDeleteItem} />
+          ))}
+
+          <button className="add-category-btn" onClick={handleAddCategory}>+ Add new category</button>
+
+          {wearCategories.map(cat => (
+            <Category key={cat.id} category={cat}
+              onUpdate={handleCategoryUpdate} onDelete={handleCategoryDelete}
+              onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onDeleteItem={handleDeleteItem} />
+          ))}
+        </>
+      );
+    };
+
+    // ==================== Hikes View ====================
+    const HikesView = ({ hikes, onAddHike, onUpdateHike, onDeleteHike }) => {
+      const [selectedHike, setSelectedHike] = useState(null);
+      const [showForm, setShowForm] = useState(false);
+      const [editingHike, setEditingHike] = useState(null);
+      const [formData, setFormData] = useState({
+        name: '', description: '', imageUrl: '', distance: '', elevation: '', duration: '', location: '', status: 'wishlist'
+      });
+
+      const openNew = () => {
+        setFormData({ name: '', description: '', imageUrl: '', distance: '', elevation: '', duration: '', location: '', status: 'wishlist' });
+        setEditingHike(null);
+        setShowForm(true);
+      };
+
+      const openEdit = (hike) => {
+        setFormData({ ...hike });
+        setEditingHike(hike);
+        setShowForm(true);
+      };
+
+      const handleSave = () => {
+        const hike = { ...formData, id: editingHike?.id || generateId() };
+        if (editingHike) {
+          onUpdateHike(hike);
+          if (selectedHike?.id === hike.id) setSelectedHike(hike);
+        } else {
+          onAddHike(hike);
+        }
+        setShowForm(false);
+      };
+
+      const getStatusLabel = (status) => ({ wishlist: 'Wishlist', planned: 'Planned', completed: 'Completed' }[status] || status);
+
+      if (selectedHike) {
+        return (
+          <div className="hike-detail">
+            <button className="back-btn" onClick={() => setSelectedHike(null)}>← Back to all hikes</button>
+
+            {selectedHike.imageUrl ? (
+              <div className="hike-hero" style={{ backgroundImage: `url(${selectedHike.imageUrl})` }}>
+                <div className="hike-hero-overlay">
+                  <h1 className="hike-hero-title">{selectedHike.name}</h1>
+                </div>
+              </div>
+            ) : (
+              <div className="hike-hero-placeholder">🥾</div>
+            )}
+
+            <div className="hike-detail-card">
+              <h3 className="hike-detail-title">About this hike</h3>
+              <p className="hike-detail-text">{selectedHike.description || 'No description added yet.'}</p>
+            </div>
+
+            <div className="hike-detail-card">
+              <div className="hike-detail-stats">
+                {selectedHike.distance && <div className="hike-stat-item"><div className="hike-stat-value">{selectedHike.distance}</div><div className="hike-stat-label">Distance</div></div>}
+                {selectedHike.elevation && <div className="hike-stat-item"><div className="hike-stat-value">{selectedHike.elevation}</div><div className="hike-stat-label">Elevation</div></div>}
+                {selectedHike.duration && <div className="hike-stat-item"><div className="hike-stat-value">{selectedHike.duration}</div><div className="hike-stat-label">Duration</div></div>}
+                {selectedHike.location && <div className="hike-stat-item"><div className="hike-stat-value">{selectedHike.location}</div><div className="hike-stat-label">Location</div></div>}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button className="btn btn-secondary" onClick={() => openEdit(selectedHike)}>Edit</button>
+              <button className="btn btn-secondary" onClick={() => { if (confirm('Delete?')) { onDeleteHike(selectedHike.id); setSelectedHike(null); } }}>Delete</button>
+            </div>
+
+            {showForm && (
+              <HikeFormModal formData={formData} setFormData={setFormData} onSave={handleSave} onClose={() => setShowForm(false)} isEditing={!!editingHike} />
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <>
+          <div className="page-header">
+            <h1 className="page-title">Hikes</h1>
+            <button className="btn btn-primary" onClick={openNew}>+ New Hike</button>
+          </div>
+
+          {hikes.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-title">No hikes yet</div>
+              <p>Add hikes you want to do or have completed.</p>
+            </div>
+          ) : (
+            <div className="hikes-grid">
+              {hikes.map(hike => (
+                <div key={hike.id} className="hike-card" onClick={() => setSelectedHike(hike)}>
+                  {hike.imageUrl ? (
+                    <div className="hike-card-image" style={{ backgroundImage: `url(${hike.imageUrl})` }}>
+                      <span className="hike-card-badge">{getStatusLabel(hike.status)}</span>
+                    </div>
+                  ) : (
+                    <div className="hike-card-image-placeholder">🥾</div>
+                  )}
+                  <div className="hike-card-content">
+                    <h3 className="hike-card-title">{hike.name}</h3>
+                    <div className="hike-card-meta">
+                      {hike.distance && <span className="hike-card-meta-item">↔️ {hike.distance}</span>}
+                      {hike.elevation && <span className="hike-card-meta-item">↗️ {hike.elevation}</span>}
+                      {hike.location && <span className="hike-card-meta-item">📍 {hike.location}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showForm && (
+            <HikeFormModal formData={formData} setFormData={setFormData} onSave={handleSave} onClose={() => setShowForm(false)} isEditing={!!editingHike} />
+          )}
+        </>
+      );
+    };
+
+    const HikeFormModal = ({ formData, setFormData, onSave, onClose, isEditing }) => (
+      <Modal title={isEditing ? 'Edit Hike' : 'New Hike'} onClose={onClose}
+        footer={<><button className="btn btn-secondary" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={onSave}>Save</button></>}>
+        <div className="form-group">
+          <label className="form-label">Name *</label>
+          <input className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. West Highland Way" />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Description</label>
+          <textarea className="form-input form-textarea" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the hike..." />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Image URL</label>
+          <input className="form-input" value={formData.imageUrl} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} placeholder="https://..." />
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Distance</label>
+            <input className="form-input" value={formData.distance} onChange={(e) => setFormData({ ...formData, distance: e.target.value })} placeholder="e.g. 154 km" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Elevation</label>
+            <input className="form-input" value={formData.elevation} onChange={(e) => setFormData({ ...formData, elevation: e.target.value })} placeholder="e.g. 3,690 m" />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Duration</label>
+            <input className="form-input" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} placeholder="e.g. 6 days" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Location</label>
+            <input className="form-input" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. Scotland" />
+          </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Status</label>
+          <select className="form-input" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+            <option value="wishlist">Wishlist</option>
+            <option value="planned">Planned</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </Modal>
+    );
+
+    // ==================== Food View ====================
+    const FoodView = ({ recipes, onAddRecipe, onUpdateRecipe, onDeleteRecipe }) => {
+      const [showModal, setShowModal] = useState(false);
+      const [editing, setEditing] = useState(null);
+      const [formData, setFormData] = useState({ name: '', type: 'breakfast', imageUrl: '', ingredients: [] });
+      const [filterType, setFilterType] = useState('all');
+
+      const openNew = () => { setFormData({ name: '', type: 'breakfast', imageUrl: '', ingredients: [] }); setEditing(null); setShowModal(true); };
+      const openEdit = (recipe) => { setFormData(recipe); setEditing(recipe); setShowModal(true); };
+
+      const handleSave = () => {
+        const recipe = { ...formData, id: editing?.id || generateId() };
+        editing ? onUpdateRecipe(recipe) : onAddRecipe(recipe);
+        setShowModal(false);
+      };
+
+      const addIngredient = () => setFormData({ ...formData, ingredients: [...formData.ingredients, { id: generateId(), name: '', weightGrams: 0, calories: 0 }] });
+      const updateIngredient = (i, field, value) => { const updated = [...formData.ingredients]; updated[i] = { ...updated[i], [field]: value }; setFormData({ ...formData, ingredients: updated }); };
+      const removeIngredient = (i) => setFormData({ ...formData, ingredients: formData.ingredients.filter((_, idx) => idx !== i) });
+
+      const getEmoji = (type) => ({ breakfast: '🥣', lunch: '🥙', dinner: '🍲', snack: '🍫' }[type] || '🍽️');
+      const getStats = (recipe) => ({ weight: recipe.ingredients.reduce((s, i) => s + (i.weightGrams || 0), 0), calories: recipe.ingredients.reduce((s, i) => s + (i.calories || 0), 0) });
+      const getCaloriesPerGram = (recipe) => {
+        const stats = getStats(recipe);
+        return stats.weight > 0 ? (stats.calories / stats.weight).toFixed(1) : 0;
+      };
+
+      const filteredRecipes = filterType === 'all' ? recipes : recipes.filter(r => r.type === filterType);
+
+      return (
+        <>
+          <div className="recipes-header">
+            <h2 className="recipes-title">Recipes</h2>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <select className="form-input" style={{ width: 'auto', padding: '8px 12px' }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                <option value="all">All types</option>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="snack">Snacks</option>
+              </select>
+              <button className="btn btn-primary" onClick={openNew}>+ New Recipe</button>
+            </div>
+          </div>
+
+          {filteredRecipes.length === 0 ? (
+            <div className="empty-state"><div className="empty-state-title">No recipes yet</div><p>Create your first recipe.</p></div>
+          ) : (
+            <div className="recipes-grid">
+              {filteredRecipes.map(recipe => {
+                const stats = getStats(recipe);
+                return (
+                  <div key={recipe.id} className="recipe-card">
+                    {recipe.imageUrl ? (
+                      <div className="recipe-card-image" style={{ backgroundImage: `url(${recipe.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        <span className={`recipe-type-badge ${recipe.type}`} style={{ position: 'absolute', top: 10, right: 10 }}>{recipe.type}</span>
+                      </div>
+                    ) : (
+                      <div className={`recipe-card-image ${recipe.type}`} style={{ position: 'relative' }}>
+                        {getEmoji(recipe.type)}
+                        <span className={`recipe-type-badge ${recipe.type}`} style={{ position: 'absolute', top: 10, right: 10 }}>{recipe.type}</span>
+                      </div>
+                    )}
+                    <div className="recipe-card-content">
+                      <div className="recipe-card-header">
+                        <span className="recipe-card-title">{recipe.name}</span>
+                      </div>
+                      <div className="recipe-stats">
+                        <span>🏋️ {formatWeight(stats.weight)}</span>
+                        <span>🔥 {stats.calories} cal</span>
+                        <span style={{ color: '#22c55e' }}>⚡ {getCaloriesPerGram(recipe)} cal/g</span>
+                      </div>
+                      <div className="recipe-actions">
+                        <button className="btn btn-secondary btn-small" onClick={() => openEdit(recipe)}>Edit</button>
+                        <button className="btn btn-secondary btn-small" onClick={() => { if (confirm('Delete?')) onDeleteRecipe(recipe.id); }}>Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {showModal && (
+            <Modal title={editing ? 'Edit Recipe' : 'New Recipe'} onClose={() => setShowModal(false)}
+              footer={<><button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button><button className="btn btn-primary" onClick={handleSave}>Save</button></>}>
+              <div className="form-group"><label className="form-label">Name</label><input className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Recipe name" /></div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Type</label>
+                  <select className="form-input" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
+                    <option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Image URL</label>
+                  <input className="form-input" value={formData.imageUrl || ''} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} placeholder="https://..." />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Ingredients</label>
+                <table className="ingredients-table">
+                  <thead><tr><th>Name</th><th style={{ width: 80 }}>Weight (g)</th><th style={{ width: 80 }}>Calories</th><th style={{ width: 40 }}></th></tr></thead>
+                  <tbody>
+                    {formData.ingredients.map((ing, i) => (
+                      <tr key={ing.id}>
+                        <td><input value={ing.name} onChange={(e) => updateIngredient(i, 'name', e.target.value)} placeholder="Ingredient name" /></td>
+                        <td><input type="number" value={ing.weightGrams} onChange={(e) => updateIngredient(i, 'weightGrams', parseFloat(e.target.value) || 0)} /></td>
+                        <td><input type="number" value={ing.calories} onChange={(e) => updateIngredient(i, 'calories', parseFloat(e.target.value) || 0)} /></td>
+                        <td><button className="delete-btn" style={{ opacity: 1 }} onClick={() => removeIngredient(i)}>×</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <button className="btn btn-secondary btn-small" style={{ marginTop: 8 }} onClick={addIngredient}>+ Add Ingredient</button>
+              </div>
+            </Modal>
+          )}
+        </>
+      );
+    };
+
+    // ==================== Dashboard View ====================
+    const DashboardView = ({ trips, hikes, gearLists, recipes, onUpdateTrip, onAddTrip }) => {
+      const [showTripForm, setShowTripForm] = useState(false);
+      const [expandedDays, setExpandedDays] = useState({});
+
+      const upcomingTrip = trips.find(t => t.status === 'upcoming') || trips[0];
+      const [editingTrip, setEditingTrip] = useState(upcomingTrip);
+      const [formData, setFormData] = useState(upcomingTrip || {
+        id: generateId(), name: 'New Trip', hikeId: '', gearListId: '', startDate: '', endDate: '', status: 'upcoming', foodMenu: [], waterLiters: 2
+      });
+
+      useEffect(() => {
+        if (upcomingTrip) {
+          setEditingTrip(upcomingTrip);
+          setFormData(upcomingTrip);
+        }
+      }, [trips]);
+
+      const selectedHike = hikes.find(h => h.id === formData.hikeId);
+      const selectedGearList = gearLists.find(l => l.id === formData.gearListId);
+
+      const handleFieldChange = (field, value) => {
+        const updated = { ...formData, [field]: value };
+        setFormData(updated);
+        if (editingTrip) {
+          onUpdateTrip(updated);
+        }
+      };
+
+      const handleCreateTrip = () => {
+        const newTrip = {
+          id: generateId(),
+          name: 'New Trip',
+          hikeId: hikes[0]?.id || '',
+          gearListId: gearLists[0]?.id || '',
+          startDate: '',
+          endDate: '',
+          status: 'upcoming',
+          foodMenu: [],
+          waterLiters: 2
+        };
+        onAddTrip(newTrip);
+        setFormData(newTrip);
+        setEditingTrip(newTrip);
+      };
+
+      const getDaysCount = () => {
+        if (!formData.startDate || !formData.endDate) return 0;
+        const start = new Date(formData.startDate);
+        const end = new Date(formData.endDate);
+        return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      };
+
+      const daysCount = getDaysCount();
+
+      const initFoodMenu = () => {
+        if (daysCount > 0 && (!formData.foodMenu || formData.foodMenu.length !== daysCount)) {
+          const menu = Array.from({ length: daysCount }, (_, i) => ({
+            day: i + 1,
+            meals: { breakfast: { recipeId: '', qty: 1 }, lunch: { recipeId: '', qty: 1 }, dinner: { recipeId: '', qty: 1 }, snacks: { recipeId: '', qty: 2 } }
+          }));
+          handleFieldChange('foodMenu', menu);
+        }
+      };
+
+      useEffect(() => { initFoodMenu(); }, [daysCount]);
+
+      const updateMeal = (dayIndex, mealType, field, value) => {
+        const menu = [...(formData.foodMenu || [])];
+        if (menu[dayIndex]) {
+          const currentMeal = menu[dayIndex].meals?.[mealType] || { recipeId: '', qty: 1 };
+          // Handle both old format (string) and new format (object)
+          const mealObj = typeof currentMeal === 'string' ? { recipeId: currentMeal, qty: 1 } : currentMeal;
+          menu[dayIndex] = {
+            ...menu[dayIndex],
+            meals: {
+              ...menu[dayIndex].meals,
+              [mealType]: { ...mealObj, [field]: value }
+            }
+          };
+          handleFieldChange('foodMenu', menu);
+        }
+      };
+
+      const getMealData = (day, mealType) => {
+        const meal = day?.meals?.[mealType];
+        // Handle both old format (string) and new format (object)
+        if (typeof meal === 'string') {
+          return { recipeId: meal, qty: 1 };
+        }
+        return meal || { recipeId: '', qty: 1 };
+      };
+
+      const getGearListWeight = () => {
+        if (!selectedGearList) return 0;
+        return selectedGearList.categories.reduce((sum, cat) =>
+          sum + cat.items.reduce((s, item) => s + ((item.weight || 0) * (item.quantity || 1)), 0), 0);
+      };
+
+      const getTotalFoodWeight = () => {
+        return (formData.foodMenu || []).reduce((sum, day) => sum + getDayFoodWeight(day), 0);
+      };
+
+      const getDayFoodWeight = (day) => {
+        if (!day?.meals) return 0;
+        return Object.keys(day.meals).reduce((sum, mealType) => {
+          const mealData = getMealData(day, mealType);
+          const recipe = recipes.find(r => r.id === mealData.recipeId);
+          if (recipe) {
+            const weight = recipe.ingredients.reduce((s, i) => s + (i.weightGrams || 0), 0);
+            return sum + (weight * (mealData.qty || 1));
+          }
+          return sum;
+        }, 0);
+      };
+
+      const getWaterWeight = () => (formData.waterLiters || 0) * 1000; // 1L = 1kg = 1000g
+
+      const getTotalWeight = () => getGearListWeight() + getTotalFoodWeight() + getWaterWeight();
+
+      if (!upcomingTrip && trips.length === 0) {
+        return (
+          <>
+            <div className="page-header">
+              <h1 className="page-title">Upcoming trip</h1>
+              <button className="btn btn-primary" onClick={handleCreateTrip}>+ Create new trip</button>
+            </div>
+            <div className="empty-state">
+              <div className="empty-state-title">No trips yet</div>
+              <p>Create a trip to start planning.</p>
+            </div>
+          </>
+        );
+      }
+
+      return (
+        <>
+          <div className="page-header">
+            <h1 className="page-title">Upcoming trip</h1>
+            <button className="btn btn-primary" onClick={handleCreateTrip}>+ Create new trip</button>
+          </div>
+
+          <div className="dashboard-card">
+            <div className="dashboard-card-body">
+              <div className="trip-date-row">
+                📅 Date: <input type="date" value={formData.startDate || ''} onChange={(e) => handleFieldChange('startDate', e.target.value)} style={{ border: 'none', fontWeight: 500 }} />
+                → <input type="date" value={formData.endDate || ''} onChange={(e) => handleFieldChange('endDate', e.target.value)} style={{ border: 'none', fontWeight: 500 }} />
+                <OptionsDropdown options={[
+                  { label: 'Delete trip', onClick: () => {
+                    if (confirm('Delete this trip?')) {
+                      const remaining = trips.filter(t => t.id !== formData.id);
+                      // Handle through parent
+                    }
+                  }, danger: true }
+                ]} />
+              </div>
+
+              <div className="hike-selector">
+                <div className="hike-selector-label">✏️ Hike:</div>
+                <div className="hike-name">
+                  <select value={formData.hikeId || ''} onChange={(e) => handleFieldChange('hikeId', e.target.value)}>
+                    <option value="">Select a hike...</option>
+                    {hikes.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {selectedHike && (
+                <>
+                  <p className="hike-description">{selectedHike.description}</p>
+                  <div className="hike-stats">
+                    {selectedHike.duration && <span className="hike-stat">⏱️ {selectedHike.duration}</span>}
+                    {selectedHike.distance && <span className="hike-stat">↔️ {selectedHike.distance}</span>}
+                    {selectedHike.elevation && <span className="hike-stat">↗️ {selectedHike.elevation}</span>}
+                  </div>
+                  <div className="map-placeholder">🗺️ Map placeholder</div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="dashboard-card">
+            <div className="dashboard-card-header">
+              <span className="dashboard-card-title">Gear</span>
+            </div>
+            <div className="gear-section">
+              <div className="gear-row">
+                <div className="gear-row-left">
+                  <span className="gear-row-label" style={{ fontWeight: 600 }}>Gear</span>
+                  <select className="meal-dropdown" value={formData.gearListId || ''} onChange={(e) => handleFieldChange('gearListId', e.target.value)}>
+                    <option value="">Select gear list...</option>
+                    {gearLists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+                <span className="gear-row-value">{formatWeight(getGearListWeight())}</span>
+              </div>
+            </div>
+            <div className="gear-section">
+              <div className="gear-row">
+                <div className="gear-row-left">
+                  <span className="gear-row-label" style={{ fontWeight: 600 }}>Food</span>
+                  <span style={{ color: '#78716c', fontSize: 13 }}>{daysCount} days</span>
+                </div>
+                <span className="gear-row-value">{formatWeight(getTotalFoodWeight())}</span>
+              </div>
+            </div>
+            <div className="gear-section">
+              <div className="gear-row">
+                <div className="gear-row-left">
+                  <span className="gear-row-label" style={{ fontWeight: 600 }}>Water</span>
+                  <input
+                    type="number"
+                    value={formData.waterLiters || 2}
+                    onChange={(e) => handleFieldChange('waterLiters', parseFloat(e.target.value) || 0)}
+                    style={{ width: 40, border: 'none', background: 'transparent', fontSize: 13, color: '#78716c' }}
+                    min="0"
+                    step="0.5"
+                  />
+                  <span style={{ color: '#78716c', fontSize: 13 }}>Liters</span>
+                </div>
+                <span className="gear-row-value">{formatWeight(getWaterWeight())}</span>
+              </div>
+            </div>
+            <div className="gear-section" style={{ background: '#fafaf9' }}>
+              <div className="gear-row">
+                <span className="gear-row-label" style={{ fontWeight: 700 }}>Total</span>
+                <span className="gear-row-value" style={{ fontWeight: 700 }}>{formatWeight(getTotalWeight())}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-card">
+            <div className="dashboard-card-header">
+              <span className="dashboard-card-title">Food menu</span>
+              <OptionsDropdown options={[{ label: 'Copy from previous day', onClick: () => {} }]} />
+            </div>
+
+            {daysCount === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#a8a29e' }}>
+                Set start and end dates to plan your food menu.
+              </div>
+            ) : (
+              (formData.foodMenu || []).map((day, dayIndex) => {
+                const dayWeight = getDayFoodWeight(day);
+                return (
+                  <div key={dayIndex} className="food-day">
+                    <div className="food-day-header" onClick={() => setExpandedDays(prev => ({ ...prev, [dayIndex]: !prev[dayIndex] }))}>
+                      <div className="food-day-left">
+                        <span style={{ color: '#a8a29e', fontSize: 12 }}>{expandedDays[dayIndex] ? '▼' : '›'}</span>
+                        <span className="food-day-title">Day {day.day}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span className="food-day-weight">{formatWeight(dayWeight)}</span>
+                        <OptionsDropdown options={[{ label: 'Copy to next day', onClick: () => {} }]} />
+                      </div>
+                    </div>
+                    {expandedDays[dayIndex] && (
+                      <div className="food-day-content">
+                        <table className="food-meal-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '15%' }}>Type</th>
+                              <th style={{ width: '35%' }}>Food</th>
+                              <th style={{ width: '10%', textAlign: 'center' }}>Qty</th>
+                              <th style={{ width: '12%', textAlign: 'right' }}>Calories</th>
+                              <th style={{ width: '12%', textAlign: 'right' }}>Weight</th>
+                              <th style={{ width: '12%', textAlign: 'right' }}>Total</th>
+                              <th style={{ width: '4%' }}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {['breakfast', 'lunch', 'dinner', 'snacks'].map(mealType => {
+                              const mealData = getMealData(day, mealType);
+                              const recipe = recipes.find(r => r.id === mealData.recipeId);
+                              const weight = recipe?.ingredients.reduce((s, i) => s + (i.weightGrams || 0), 0) || 0;
+                              const calories = recipe?.ingredients.reduce((s, i) => s + (i.calories || 0), 0) || 0;
+                              const qty = mealData.qty || 1;
+                              const mealEmoji = mealType === 'breakfast' ? '🥣' : mealType === 'lunch' ? '🥙' : mealType === 'dinner' ? '🍲' : '🍫';
+                              return (
+                                <tr key={mealType}>
+                                  <td>
+                                    <div className="meal-type-cell">
+                                      {mealEmoji} {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <select
+                                      className="meal-dropdown"
+                                      value={mealData.recipeId || ''}
+                                      onChange={(e) => updateMeal(dayIndex, mealType, 'recipeId', e.target.value)}
+                                      style={{ width: '100%' }}
+                                    >
+                                      <option value="">Select...</option>
+                                      {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    </select>
+                                  </td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <input
+                                      type="number"
+                                      value={qty}
+                                      onChange={(e) => updateMeal(dayIndex, mealType, 'qty', parseInt(e.target.value) || 1)}
+                                      style={{ width: 40, textAlign: 'center', border: '1px solid #e7e5e4', borderRadius: 4, padding: '2px 4px', fontSize: 13 }}
+                                      min="1"
+                                    />
+                                  </td>
+                                  <td style={{ textAlign: 'right' }}>{calories || '-'}</td>
+                                  <td style={{ textAlign: 'right' }}>{weight ? formatWeight(weight) : '-'}</td>
+                                  <td style={{ textAlign: 'right', fontWeight: 500 }}>{weight ? formatWeight(weight * qty) : '-'}</td>
+                                  <td>
+                                    <button
+                                      className="delete-btn"
+                                      style={{ opacity: mealData.recipeId ? 1 : 0.3 }}
+                                      onClick={() => updateMeal(dayIndex, mealType, 'recipeId', '')}
+                                    >
+                                      ×
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      );
+    };
+
+    // ==================== Main App ====================
+    const App = () => {
+      const [activeView, setActiveView] = useState('dashboard');
+
+      const [gearLists, setGearLists] = useState(() => {
+        // Check if we need to do a one-time reset (version flag)
+        const resetVersion = 'v2-empty';
+        if (localStorage.getItem('gearListResetVersion') !== resetVersion) {
+          localStorage.removeItem('gearLists');
+          localStorage.setItem('gearListResetVersion', resetVersion);
+          return [createDefaultGearList()];
+        }
+        const stored = loadFromStorage('gearLists', null);
+        return stored && stored.length > 0 ? stored : [createDefaultGearList()];
+      });
+      const [currentGearListId, setCurrentGearListId] = useState(() => gearLists[0]?.id);
+
+      const [hikes, setHikes] = useState(() => loadFromStorage('hikes', []));
+      const [recipes, setRecipes] = useState(() => {
+        // Check if we need to load default recipes (version flag)
+        const recipeVersion = 'v1-default-25';
+        if (localStorage.getItem('recipeVersion') !== recipeVersion) {
+          localStorage.removeItem('recipes');
+          localStorage.setItem('recipeVersion', recipeVersion);
+          return defaultRecipes;
+        }
+        const stored = loadFromStorage('recipes', null);
+        return stored && stored.length > 0 ? stored : defaultRecipes;
+      });
+      const [trips, setTrips] = useState(() => loadFromStorage('trips', []));
+
+      useEffect(() => { saveToStorage('gearLists', gearLists); }, [gearLists]);
+      useEffect(() => { saveToStorage('hikes', hikes); }, [hikes]);
+      useEffect(() => { saveToStorage('recipes', recipes); }, [recipes]);
+      useEffect(() => { saveToStorage('trips', trips); }, [trips]);
+
+      const currentGearList = gearLists.find(l => l.id === currentGearListId);
+
+      const handleUpdateGearList = (updated) => setGearLists(gearLists.map(l => l.id === updated.id ? updated : l));
+      const handleCreateGearList = () => {
+        const name = prompt('New list name:', 'My Gear List');
+        if (name) {
+          const newList = createDefaultGearList(name);
+          setGearLists([...gearLists, newList]);
+          setCurrentGearListId(newList.id);
+        }
+      };
+      const handleDuplicateGearList = (id) => {
+        const list = gearLists.find(l => l.id === id);
+        if (list) {
+          const newList = { ...JSON.parse(JSON.stringify(list)), id: generateId(), name: `${list.name} (copy)` };
+          setGearLists([...gearLists, newList]);
+          setCurrentGearListId(newList.id);
+        }
+      };
+      const handleDeleteGearList = (id) => {
+        const remaining = gearLists.filter(l => l.id !== id);
+        setGearLists(remaining);
+        if (currentGearListId === id) setCurrentGearListId(remaining[0]?.id);
+      };
+      const handleRenameGearList = (id, name) => setGearLists(gearLists.map(l => l.id === id ? { ...l, name } : l));
+
+      const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'hikes', label: 'Hikes', icon: '🥾' },
+        { id: 'gear', label: 'Gear', icon: '🎒' },
+        { id: 'food', label: 'Food', icon: '🍳' },
+      ];
+
+      const showSidebar = activeView === 'gear';
+
+      return (
+        <div className="app-layout">
+          <aside className="left-sidebar">
+            <nav className="sidebar-nav">
+              {navItems.map(item => (
+                <button key={item.id} className={`nav-item ${activeView === item.id ? 'active' : ''}`} onClick={() => setActiveView(item.id)}>
+                  <span className="nav-item-icon">{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+            <div className="sidebar-footer">
+              <button className="settings-btn"><span className="nav-item-icon">⚙️</span>Settings</button>
+            </div>
+          </aside>
+
+          <main className={`main-content ${showSidebar ? 'with-sidebar' : ''}`}>
+            {activeView === 'dashboard' && (
+              <DashboardView
+                trips={trips}
+                hikes={hikes}
+                gearLists={gearLists}
+                recipes={recipes}
+                onUpdateTrip={(trip) => setTrips(trips.map(t => t.id === trip.id ? trip : t))}
+                onAddTrip={(trip) => setTrips([...trips, trip])}
+              />
+            )}
+            {activeView === 'gear' && (
+              <GearView
+                lists={gearLists}
+                currentListId={currentGearListId}
+                onSelectList={setCurrentGearListId}
+                onUpdateList={handleUpdateGearList}
+                onCreateList={handleCreateGearList}
+                onDuplicateList={handleDuplicateGearList}
+                onDeleteList={handleDeleteGearList}
+                onRenameList={handleRenameGearList}
+              />
+            )}
+            {activeView === 'hikes' && (
+              <HikesView
+                hikes={hikes}
+                onAddHike={(h) => setHikes([...hikes, h])}
+                onUpdateHike={(h) => setHikes(hikes.map(x => x.id === h.id ? h : x))}
+                onDeleteHike={(id) => setHikes(hikes.filter(h => h.id !== id))}
+              />
+            )}
+            {activeView === 'food' && (
+              <FoodView
+                recipes={recipes}
+                onAddRecipe={(r) => setRecipes([...recipes, r])}
+                onUpdateRecipe={(r) => setRecipes(recipes.map(x => x.id === r.id ? r : x))}
+                onDeleteRecipe={(id) => setRecipes(recipes.filter(r => r.id !== id))}
+              />
+            )}
+          </main>
+
+          {showSidebar && currentGearList && (
+            <aside className="right-sidebar">
+              <WeightChart categories={currentGearList.categories} />
+            </aside>
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
