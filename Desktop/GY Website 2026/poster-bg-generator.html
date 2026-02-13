@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vintage Railway Background Generator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a1e;
+  --surface: #252528;
+  --surface-hover: #2e2e32;
+  --border: #333338;
+  --text: #d0d0d0;
+  --text-dim: #888;
+  --accent: #c8a050;
+  --accent-hover: #d4ad5e;
+  --radius: 6px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.header {
+  grid-column: 1 / -1;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; color: var(--text); }
+.header .subtitle { font-size: 11px; color: var(--text-dim); }
+
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  gap: 12px;
+}
+
+.preview-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+#mainCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+.variations {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.variation-thumb {
+  aspect-ratio: 16/10;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  overflow: hidden;
+  background: #111;
+  transition: border-color 0.15s;
+}
+.variation-thumb:hover { border-color: var(--text-dim); }
+.variation-thumb.active { border-color: var(--accent); }
+.variation-thumb canvas { width: 100%; height: 100%; display: block; }
+
+.sidebar {
+  border-left: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+
+.control-group label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.control-group label span {
+  font-weight: 400;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+/* Mode toggle */
+.mode-toggle {
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.mode-toggle button {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.mode-toggle button.active {
+  background: var(--accent);
+  color: #1a1a1e;
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(200, 160, 80, 0.05);
+}
+.drop-zone p {
+  font-size: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.drop-zone p strong {
+  color: var(--accent);
+}
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Image library thumbnails */
+.image-library {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.lib-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.lib-thumb:hover { border-color: var(--text-dim); }
+.lib-thumb.pinned { border-color: var(--accent); }
+.lib-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.lib-thumb .remove {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 14px;
+  height: 14px;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 0 0 0 3px;
+  display: none;
+  cursor: pointer;
+}
+.lib-thumb:hover .remove { display: block; }
+
+.lib-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lib-count {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.clear-all-btn {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+.clear-all-btn:hover { color: var(--text); }
+
+/* Checkbox toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toggle-row input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.toggle-row span {
+  font-size: 12px;
+  color: var(--text);
+}
+
+select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 13px;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+}
+select:focus { border-color: var(--accent); }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.size-row { display: flex; gap: 6px; align-items: center; }
+.size-row input[type="number"] {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  text-align: center;
+}
+.size-row input[type="number"]:focus { border-color: var(--accent); }
+.size-row .x { color: var(--text-dim); font-size: 12px; flex-shrink: 0; }
+
+.presets { display: flex; flex-wrap: wrap; gap: 4px; }
+.preset-btn {
+  background: var(--surface);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 7px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+.seed-row { display: flex; gap: 6px; }
+.seed-row input[type="text"] {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  width: 100%;
+  outline: none;
+}
+.seed-row input[type="text"]:focus { border-color: var(--accent); }
+
+.btn {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  width: 100%;
+}
+.btn-primary { background: var(--accent); color: #1a1a1e; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface-hover); }
+
+.actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+
+.palette-preview { display: flex; gap: 3px; margin-top: 4px; }
+.palette-preview .swatch { width: 100%; height: 8px; border-radius: 2px; }
+
+/* Conditional visibility */
+.image-controls { display: none; }
+.procedural-controls { display: contents; }
+[data-mode="image"] .image-controls { display: contents; }
+[data-mode="image"] .procedural-controls { display: none; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .sidebar { border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
+  .variations { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>Vintage Railway Background Generator</h1>
+      <div class="subtitle">Moody backgrounds from vintage British railway posters</div>
+    </div>
+    <div class="subtitle" id="renderTime"></div>
+  </div>
+
+  <div class="main">
+    <div class="preview-container">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+    <div class="variations" id="variationGrid"></div>
+  </div>
+
+  <div class="sidebar" id="sidebar" data-mode="procedural">
+
+    <!-- Source mode toggle -->
+    <div class="control-group">
+      <label>Source</label>
+      <div class="mode-toggle">
+        <button id="modeImage" class="">Image</button>
+        <button id="modeProcedural" class="active">Procedural</button>
+      </div>
+    </div>
+
+    <!-- Image mode controls -->
+    <div class="image-controls">
+      <div class="control-group">
+        <div class="drop-zone" id="dropZone">
+          <p>Drop poster images here<br>or <strong>click to browse</strong></p>
+          <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp">
+        </div>
+        <div class="lib-actions" id="libActions" style="display:none">
+          <span class="lib-count" id="libCount"></span>
+          <button class="clear-all-btn" id="clearAllBtn">Clear all</button>
+        </div>
+        <div class="image-library" id="imageLibrary"></div>
+      </div>
+
+      <div class="control-group">
+        <label>Crop zoom <span id="cropVal">50%</span></label>
+        <input type="range" id="cropRange" min="20" max="90" value="50">
+      </div>
+
+      <div class="control-group">
+        <div class="toggle-row">
+          <input type="checkbox" id="avoidText" checked>
+          <span>Avoid poster text area</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Procedural mode controls -->
+    <div class="procedural-controls">
+      <div class="control-group">
+        <label>Palette</label>
+        <select id="paletteSelect"></select>
+        <div class="palette-preview" id="palettePreview"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Shared controls -->
+    <div class="control-group">
+      <label>Blur <span id="blurVal">60</span></label>
+      <input type="range" id="blurRange" min="10" max="120" value="60">
+    </div>
+
+    <div class="control-group">
+      <label>Grain <span id="grainVal">20</span></label>
+      <input type="range" id="grainRange" min="0" max="50" value="20">
+    </div>
+
+    <div class="control-group">
+      <label>Vignette <span id="vignetteVal">15</span></label>
+      <input type="range" id="vignetteRange" min="0" max="40" value="15">
+    </div>
+
+    <div class="control-group">
+      <label>Saturation <span id="satVal">75%</span></label>
+      <input type="range" id="satRange" min="40" max="100" value="75">
+    </div>
+
+    <div class="control-group">
+      <label>Warmth <span id="warmthVal">+5</span></label>
+      <input type="range" id="warmthRange" min="-20" max="20" value="5">
+    </div>
+
+    <div class="control-group">
+      <label>Dimensions</label>
+      <div class="size-row">
+        <input type="number" id="widthInput" value="1920" min="100" max="4096">
+        <span class="x">&times;</span>
+        <input type="number" id="heightInput" value="1080" min="100" max="4096">
+      </div>
+      <div class="presets">
+        <button class="preset-btn" data-w="1920" data-h="1080">1920&times;1080</button>
+        <button class="preset-btn" data-w="1440" data-h="820">1440&times;820</button>
+        <button class="preset-btn" data-w="1200" data-h="800">1200&times;800</button>
+        <button class="preset-btn" data-w="800" data-h="600">800&times;600</button>
+        <button class="preset-btn" data-w="1080" data-h="1920">1080&times;1920</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Seed</label>
+      <div class="seed-row">
+        <input type="text" id="seedInput" value="">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="randomizeBtn">Randomize (Space)</button>
+      <button class="btn btn-secondary" id="exportBtn">Export PNG</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PRNG
+// ============================================================
+class PRNG {
+  constructor(seed) { this.s = seed | 0 || 1; }
+  next() {
+    this.s ^= this.s << 13;
+    this.s ^= this.s >> 17;
+    this.s ^= this.s << 5;
+    return (this.s >>> 0) / 4294967296;
+  }
+  range(min, max) { return min + this.next() * (max - min); }
+  int(min, max) { return Math.floor(this.range(min, max)); }
+}
+
+// ============================================================
+// Simplex Noise 2D
+// ============================================================
+class SimplexNoise {
+  constructor(seed) {
+    const rng = new PRNG(seed);
+    this.perm = new Uint8Array(512);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    for (let i = 0; i < 512; i++) this.perm[i] = p[i & 255];
+  }
+  noise2D(x, y) {
+    const F2 = 0.5 * (Math.sqrt(3) - 1);
+    const G2 = (3 - Math.sqrt(3)) / 6;
+    const s = (x + y) * F2;
+    const i = Math.floor(x + s), j = Math.floor(y + s);
+    const t = (i + j) * G2;
+    const x0 = x - (i - t), y0 = y - (j - t);
+    const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
+    const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2;
+    const x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
+    const ii = i & 255, jj = j & 255;
+    const grad = (hash, gx, gy) => {
+      const h = hash & 7;
+      const u = h < 4 ? gx : gy, v = h < 4 ? gy : gx;
+      return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+    };
+    let n0 = 0, n1 = 0, n2 = 0;
+    let t0 = 0.5 - x0*x0 - y0*y0;
+    if (t0 > 0) { t0 *= t0; n0 = t0*t0 * grad(this.perm[ii+this.perm[jj]], x0, y0); }
+    let t1 = 0.5 - x1*x1 - y1*y1;
+    if (t1 > 0) { t1 *= t1; n1 = t1*t1 * grad(this.perm[ii+i1+this.perm[jj+j1]], x1, y1); }
+    let t2 = 0.5 - x2*x2 - y2*y2;
+    if (t2 > 0) { t2 *= t2; n2 = t2*t2 * grad(this.perm[ii+1+this.perm[jj+1]], x2, y2); }
+    return 70 * (n0 + n1 + n2);
+  }
+}
+
+// ============================================================
+// Color Utilities
+// ============================================================
+function hexToRGB(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// ============================================================
+// Auto-trim: detect and remove white/near-white borders
+// ============================================================
+function detectTrimBounds(img) {
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  // Use a smaller canvas for speed — scale down large images
+  const maxDim = 400;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  const sw = Math.round(w * scale);
+  const sh = Math.round(h * scale);
+
+  const c = document.createElement('canvas');
+  c.width = sw;
+  c.height = sh;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, sw, sh);
+  const data = ctx.getImageData(0, 0, sw, sh).data;
+
+  // A pixel is "border" if it's near-white (all channels > threshold)
+  const threshold = 230;
+  const isWhite = (x, y) => {
+    const i = (y * sw + x) * 4;
+    return data[i] > threshold && data[i+1] > threshold && data[i+2] > threshold;
+  };
+
+  // Scan from each edge: find the first row/col where most pixels are non-white
+  // "most" = more than 50% of the row/col is non-white
+  const rowIsContent = (y) => {
+    let nonWhite = 0;
+    for (let x = 0; x < sw; x++) { if (!isWhite(x, y)) nonWhite++; }
+    return nonWhite > sw * 0.5;
+  };
+  const colIsContent = (x) => {
+    let nonWhite = 0;
+    for (let y = 0; y < sh; y++) { if (!isWhite(x, y)) nonWhite++; }
+    return nonWhite > sh * 0.5;
+  };
+
+  let top = 0, bottom = sh - 1, left = 0, right = sw - 1;
+  while (top < sh && !rowIsContent(top)) top++;
+  while (bottom > top && !rowIsContent(bottom)) bottom--;
+  while (left < sw && !colIsContent(left)) left++;
+  while (right > left && !colIsContent(right)) right--;
+
+  // Convert back to original image coordinates
+  const trimX = Math.floor(left / scale);
+  const trimY = Math.floor(top / scale);
+  const trimW = Math.ceil((right - left + 1) / scale);
+  const trimH = Math.ceil((bottom - top + 1) / scale);
+
+  // Only apply trim if it actually removed something meaningful (at least 2% on any side)
+  const minBorder = 0.02;
+  const trimmed = (trimX / w > minBorder) || (trimY / h > minBorder) ||
+                  ((w - trimX - trimW) / w > minBorder) || ((h - trimY - trimH) / h > minBorder);
+
+  if (trimmed && trimW > w * 0.3 && trimH > h * 0.3) {
+    return { x: trimX, y: trimY, w: trimW, h: trimH };
+  }
+  // No meaningful border detected — use full image
+  return { x: 0, y: 0, w, h };
+}
+
+// ============================================================
+// Image Library
+// ============================================================
+class ImageLibrary {
+  constructor() {
+    this.images = [];      // {img, dataUrl, name, trim: {x,y,w,h}}
+    this.pinnedIndex = -1; // -1 = random
+    this.maxImages = 20;
+  }
+
+  addFromFile(file) {
+    return new Promise((resolve, reject) => {
+      if (this.images.length >= this.maxImages) {
+        reject(new Error('Max images reached'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+          const trim = detectTrimBounds(img);
+          this.images.push({ img, dataUrl, name: file.name, trim });
+          this.save();
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  addFromDataUrl(dataUrl, name) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const trim = detectTrimBounds(img);
+        this.images.push({ img, dataUrl, name, trim });
+        resolve();
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  removeImage(index) {
+    this.images.splice(index, 1);
+    if (this.pinnedIndex === index) this.pinnedIndex = -1;
+    else if (this.pinnedIndex > index) this.pinnedIndex--;
+    this.save();
+  }
+
+  clearAll() {
+    this.images = [];
+    this.pinnedIndex = -1;
+    this.save();
+  }
+
+  getEntry(prng) {
+    if (this.images.length === 0) return null;
+    if (this.pinnedIndex >= 0 && this.pinnedIndex < this.images.length) {
+      return this.images[this.pinnedIndex];
+    }
+    return this.images[prng.int(0, this.images.length)];
+  }
+
+  getCrop(prng, entry, targetAspect, cropScale, avoidText) {
+    const trim = entry.trim;
+    const iw = trim.w;
+    const ih = trim.h;
+    const ox = trim.x;
+    const oy = trim.y;
+
+    // Determine the usable area (avoid bottom text area of posters)
+    const usableH = avoidText ? ih * 0.7 : ih;
+
+    // Crop size as fraction of trimmed source
+    const scale = cropScale / 100;
+    let cw, ch;
+    if (targetAspect > iw / usableH) {
+      cw = iw * scale;
+      ch = cw / targetAspect;
+    } else {
+      ch = usableH * scale;
+      cw = ch * targetAspect;
+    }
+    cw = Math.min(cw, iw);
+    ch = Math.min(ch, usableH);
+
+    // Random position within trimmed area
+    const maxX = iw - cw;
+    const maxY = usableH - ch;
+    const sx = ox + prng.range(0, Math.max(0, maxX));
+    const sy = oy + prng.range(0, Math.max(0, maxY));
+
+    return { sx, sy, sw: cw, sh: ch };
+  }
+
+  save() {
+    try {
+      const data = this.images.map(i => ({ dataUrl: i.dataUrl, name: i.name }));
+      localStorage.setItem('vintage-bg-library', JSON.stringify(data));
+    } catch (e) {
+      // localStorage full — silently fail
+    }
+  }
+
+  async restore() {
+    try {
+      const raw = localStorage.getItem('vintage-bg-library');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      for (const item of data) {
+        await this.addFromDataUrl(item.dataUrl, item.name);
+      }
+    } catch (e) {
+      // Corrupted data — ignore
+    }
+  }
+}
+
+// ============================================================
+// Palettes with scene types
+// ============================================================
+const PALETTES = [
+  {
+    name: 'Coastal',
+    scene: 'coast',
+    sky: ['#D8CDBA', '#8E92AA'],
+    distantHill: ['#8B6B42', '#A08868'],
+    midGround: ['#5B8C7A', '#C49A4A'],
+    water: ['#5B8C7A', '#8E92AA'],
+    foreground: ['#2E3D52', '#8B6B42'],
+    accent: ['#D4A854', '#D8CDBA'],
+  },
+  {
+    name: 'Highland',
+    scene: 'mountains',
+    sky: ['#9088A0', '#5E6B78'],
+    distantHill: ['#6B5B73', '#5E6B78'],
+    midGround: ['#5A6B42', '#7A8B52'],
+    water: null,
+    foreground: ['#6B5234', '#3A3820'],
+    accent: ['#D4A030', '#9088A0'],
+  },
+  {
+    name: 'Countryside',
+    scene: 'rolling',
+    sky: ['#D8C8A0', '#8A8070'],
+    distantHill: ['#8A8070', '#5A6038'],
+    midGround: ['#3A5230', '#5A6038'],
+    water: null,
+    foreground: ['#C8882E', '#B06830'],
+    accent: ['#D4B060', '#D8C8A0'],
+  },
+  {
+    name: 'Autumn River',
+    scene: 'river',
+    sky: ['#C8A040', '#A89878'],
+    distantHill: ['#4A5028', '#7A6A58'],
+    midGround: ['#4A5028', '#3A3820'],
+    water: ['#C8A040', '#A89878'],
+    foreground: ['#C07028', '#7A6A58'],
+    accent: ['#D89030', '#C8A040'],
+  },
+  {
+    name: 'Moorland',
+    scene: 'moor',
+    sky: ['#C0A878', '#887080'],
+    distantHill: ['#887080', '#486058'],
+    midGround: ['#7A8868', '#889848'],
+    water: null,
+    foreground: ['#3A3850', '#486058'],
+    accent: ['#C88060', '#C0A878'],
+  },
+  {
+    name: 'Urban',
+    scene: 'cityscape',
+    sky: ['#D0BFA0', '#405870'],
+    distantHill: ['#686868', '#405870'],
+    midGround: ['#604830', '#686868'],
+    water: ['#508878', '#405870'],
+    foreground: ['#B85838', '#604830'],
+    accent: ['#C8A850', '#D0BFA0'],
+  }
+];
+
+// ============================================================
+// Landscape Scene Drawer (procedural mode)
+// ============================================================
+function generateRidgeline(w, h, baseY, amplitude, pointCount, prng, noise, noiseScale, noiseOffset) {
+  const points = [];
+  for (let i = 0; i <= pointCount; i++) {
+    const x = (i / pointCount) * w;
+    const nx = x / w;
+    const prngOffset = prng.range(-amplitude * 0.5, amplitude * 0.5);
+    const noiseVal = noise.noise2D(nx * noiseScale + noiseOffset, noiseOffset * 0.7) * amplitude;
+    points.push({ x, y: baseY + prngOffset + noiseVal });
+  }
+  return points;
+}
+
+function fillBelowRidgeline(ctx, points, w, h, colors, prng) {
+  const grad = ctx.createLinearGradient(0, 0, w, 0);
+  const c1 = colors[0], c2 = colors[1] || colors[0];
+  const shift = prng.range(0, 0.3);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(0.3 + shift, c2);
+  grad.addColorStop(0.7 + shift * 0.5, c1);
+  grad.addColorStop(1, c2);
+
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1], curr = points[i];
+    const cpx = (prev.x + curr.x) / 2;
+    ctx.quadraticCurveTo(prev.x, prev.y, cpx, (prev.y + curr.y) / 2);
+  }
+  const last = points[points.length - 1];
+  ctx.lineTo(last.x, last.y);
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+function drawForegroundMasses(ctx, w, h, baseY, colors, prng, noise, noiseOffset, count) {
+  for (let i = 0; i < count; i++) {
+    const side = prng.next() > 0.5 ? 'left' : 'right';
+    const massWidth = prng.range(0.2, 0.5) * w;
+    const massHeight = prng.range(0.15, 0.35) * h;
+    const x = side === 'left' ? prng.range(-massWidth * 0.3, w * 0.3) : prng.range(w * 0.4, w + massWidth * 0.3);
+
+    const grad = ctx.createRadialGradient(
+      x + massWidth * 0.5, h, massWidth * 0.1,
+      x + massWidth * 0.5, h - massHeight * 0.5, massWidth * 0.8
+    );
+    grad.addColorStop(0, colors[0]);
+    grad.addColorStop(1, colors[1] || colors[0]);
+
+    const pts = [];
+    const segments = 6 + prng.int(0, 4);
+    for (let j = 0; j <= segments; j++) {
+      const t = j / segments;
+      const px = x + t * massWidth;
+      const noiseVal = noise.noise2D(t * 3 + noiseOffset + i * 10, noiseOffset) * massHeight * 0.3;
+      const shape = Math.sin(t * Math.PI);
+      const py = h - shape * massHeight + noiseVal;
+      pts.push({ x: px, y: py });
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, h);
+    ctx.lineTo(pts[0].x, pts[0].y);
+    for (let j = 1; j < pts.length; j++) {
+      const prev = pts[j - 1], curr = pts[j];
+      const cpx = (prev.x + curr.x) / 2;
+      ctx.quadraticCurveTo(prev.x, prev.y, cpx, (prev.y + curr.y) / 2);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+}
+
+function drawWater(ctx, w, h, topY, bottomY, colors, prng) {
+  const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
+  grad.addColorStop(0, colors[0]);
+  grad.addColorStop(0.5, colors[1] || colors[0]);
+  grad.addColorStop(1, colors[0]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, topY, w, bottomY - topY);
+  ctx.globalCompositeOperation = 'soft-light';
+  for (let i = 0; i < 5; i++) {
+    const ry = prng.range(topY, bottomY);
+    ctx.fillStyle = `rgba(255,255,255,${prng.range(0.05, 0.15)})`;
+    ctx.fillRect(0, ry, w, prng.range(1, 3));
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawAccents(ctx, w, h, colors, prng, count) {
+  ctx.globalCompositeOperation = 'soft-light';
+  for (let i = 0; i < count; i++) {
+    const cx = prng.range(0, w), cy = prng.range(0, h);
+    const radius = prng.range(0.1, 0.4) * Math.max(w, h);
+    const c = hexToRGB(colors[prng.int(0, colors.length)]);
+    const alpha = prng.range(0.08, 0.25);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${alpha})`);
+    grad.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawClouds(ctx, w, h, maxY, prng, skyColors) {
+  ctx.globalCompositeOperation = 'soft-light';
+  const count = prng.int(2, 5);
+  for (let i = 0; i < count; i++) {
+    const cx = prng.range(0, w), cy = prng.range(maxY * 0.1, maxY * 0.7);
+    const rx = prng.range(0.15, 0.4) * w, ry = prng.range(0.05, 0.15) * h;
+    const c = hexToRGB(skyColors[0]);
+    const alpha = prng.range(0.1, 0.25);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+    grad.addColorStop(0, `rgba(${Math.min(255,c[0]+20)},${Math.min(255,c[1]+15)},${Math.min(255,c[2]+10)},${alpha})`);
+    grad.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawScene(ctx, pal, prng, noise, w, h) {
+  const noiseOffset = prng.range(0, 1000);
+  const horizonY = prng.range(h * 0.3, h * 0.5);
+
+  // Sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY * 1.2);
+  skyGrad.addColorStop(0, pal.sky[1]);
+  skyGrad.addColorStop(1, pal.sky[0]);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h);
+  drawClouds(ctx, w, h, horizonY, prng, pal.sky);
+
+  // Water
+  if (pal.water) {
+    let wt, wb;
+    if (pal.scene === 'coast') { wt = horizonY; wb = prng.range(h * 0.55, h * 0.7); }
+    else if (pal.scene === 'river') { wt = prng.range(h * 0.4, h * 0.5); wb = wt + prng.range(h * 0.08, h * 0.18); }
+    else if (pal.scene === 'cityscape') { wt = prng.range(h * 0.55, h * 0.65); wb = wt + prng.range(h * 0.06, h * 0.12); }
+    if (wt != null) drawWater(ctx, w, h, wt, wb, pal.water, prng);
+  }
+
+  // Distant hills
+  const distY = horizonY + prng.range(-h * 0.05, h * 0.05);
+  if (pal.scene === 'mountains') {
+    const ridge = generateRidgeline(w, h, distY, h * 0.25, 10, prng, noise, 4, noiseOffset);
+    for (let i = 2; i < ridge.length - 2; i++) { if (prng.next() > 0.6) ridge[i].y -= prng.range(h * 0.05, h * 0.2); }
+    fillBelowRidgeline(ctx, ridge, w, h, pal.distantHill, prng);
+  } else if (pal.scene === 'cityscape') {
+    const ridge = [];
+    const segs = 15 + prng.int(0, 10);
+    for (let i = 0; i <= segs; i++) {
+      const x = (i / segs) * w;
+      const tall = prng.next() > 0.6;
+      ridge.push({ x, y: distY - (tall ? prng.range(h * 0.05, h * 0.2) : prng.range(0, h * 0.05)) });
+    }
+    fillBelowRidgeline(ctx, ridge, w, h, pal.distantHill, prng);
+  } else {
+    fillBelowRidgeline(ctx, generateRidgeline(w, h, distY, h * 0.08, 8, prng, noise, 3, noiseOffset), w, h, pal.distantHill, prng);
+  }
+
+  // Second distant layer
+  if (prng.next() > 0.3) {
+    const y2 = distY + prng.range(h * 0.02, h * 0.08);
+    const amp = pal.scene === 'mountains' ? h * 0.15 : h * 0.06;
+    fillBelowRidgeline(ctx, generateRidgeline(w, h, y2, amp, 7, prng, noise, 3.5, noiseOffset + 50), w, h, [pal.distantHill[1] || pal.distantHill[0], pal.midGround[0]], prng);
+  }
+
+  // Mid-ground
+  const midY = horizonY + prng.range(h * 0.05, h * 0.15);
+  if (pal.scene === 'rolling') {
+    for (let l = 0; l < 3; l++) {
+      const ly = midY + l * prng.range(h * 0.04, h * 0.08);
+      const t = l / 2;
+      fillBelowRidgeline(ctx, generateRidgeline(w, h, ly, h * 0.05, 8, prng, noise, 2.5, noiseOffset + l * 30), w, h, [t < 0.5 ? pal.midGround[0] : pal.midGround[1], t < 0.5 ? pal.midGround[1] : pal.midGround[0]], prng);
+    }
+  } else if (pal.scene === 'coast') {
+    drawForegroundMasses(ctx, w, h, midY, pal.midGround, prng, noise, noiseOffset + 20, 2);
+  } else if (pal.scene === 'river') {
+    fillBelowRidgeline(ctx, generateRidgeline(w * 0.5, h, horizonY - h * 0.05, h * 0.15, 6, prng, noise, 3, noiseOffset + 40), w * 0.5, h, pal.midGround, prng);
+    const rp = new PRNG(prng.int(1, 999999));
+    ctx.save(); ctx.translate(w * 0.5, 0);
+    fillBelowRidgeline(ctx, generateRidgeline(w * 0.5, h, horizonY - h * 0.02, h * 0.12, 6, rp, noise, 3, noiseOffset + 60), w * 0.5, h, [pal.midGround[1], pal.midGround[0]], rp);
+    ctx.restore();
+  } else {
+    fillBelowRidgeline(ctx, generateRidgeline(w, h, midY, h * 0.08, 8, prng, noise, 3, noiseOffset + 25), w, h, pal.midGround, prng);
+  }
+
+  // Foreground
+  const fgY = h * prng.range(0.65, 0.8);
+  if (pal.scene === 'moor') {
+    fillBelowRidgeline(ctx, generateRidgeline(w, h, fgY + h * 0.05, h * 0.04, 10, prng, noise, 4, noiseOffset + 70), w, h, pal.foreground, prng);
+  } else {
+    drawForegroundMasses(ctx, w, h, fgY, pal.foreground, prng, noise, noiseOffset + 80, pal.scene === 'river' ? 3 : 2);
+    fillBelowRidgeline(ctx, generateRidgeline(w, h, fgY + h * 0.1, h * 0.04, 6, prng, noise, 2, noiseOffset + 90), w, h, pal.foreground, prng);
+  }
+
+  drawAccents(ctx, w, h, pal.accent, prng, 4 + prng.int(0, 4));
+}
+
+// ============================================================
+// Background Generator
+// ============================================================
+class BackgroundGenerator {
+  constructor() {
+    this.grainCanvas = document.createElement('canvas');
+    this.grainCanvas.width = 256;
+    this.grainCanvas.height = 256;
+    this.lastGrainIntensity = -1;
+  }
+
+  generateGrainTile(intensity) {
+    if (intensity === this.lastGrainIntensity) return;
+    this.lastGrainIntensity = intensity;
+    const ctx = this.grainCanvas.getContext('2d');
+    const img = ctx.createImageData(256, 256);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const u1 = Math.random() || 0.001;
+      const u2 = Math.random();
+      const g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      const v = Math.round(128 + g * intensity);
+      d[i]     = Math.max(0, Math.min(255, v + 2));
+      d[i + 1] = Math.max(0, Math.min(255, v));
+      d[i + 2] = Math.max(0, Math.min(255, v - 2));
+      d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  render(canvas, options) {
+    const t0 = performance.now();
+    const { width, height, palette, seed, blur, grain, vignette, saturation, warmth, mode, imageLib, cropScale, avoidText } = options;
+
+    const prng = new PRNG(seed);
+    const noise = new SimplexNoise(seed);
+
+    // Offscreen rendering
+    const scale = mode === 'image' ? 1 : 0.5;
+    const lw = Math.ceil(width * scale);
+    const lh = Math.ceil(height * scale);
+    const offscreen = document.createElement('canvas');
+    offscreen.width = lw;
+    offscreen.height = lh;
+    const octx = offscreen.getContext('2d');
+
+    // Step 1: Source — image crop or procedural scene
+    if (mode === 'image' && imageLib && imageLib.images.length > 0) {
+      const entry = imageLib.getEntry(prng);
+      if (entry) {
+        const targetAspect = lw / lh;
+        const crop = imageLib.getCrop(prng, entry, targetAspect, cropScale || 50, avoidText !== false);
+        octx.drawImage(entry.img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, lw, lh);
+      }
+    } else {
+      const pal = PALETTES[palette];
+      drawScene(octx, pal, prng, noise, lw, lh);
+    }
+
+    // Step 2: Blur + upscale
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.filter = `blur(${blur}px) saturate(${saturation / 100})`;
+    const pad = blur * 2;
+    ctx.drawImage(offscreen, -pad, -pad, width + pad * 2, height + pad * 2);
+    ctx.filter = 'none';
+
+    // Step 3: Warmth
+    if (warmth !== 0) {
+      ctx.globalCompositeOperation = 'color';
+      ctx.fillStyle = warmth > 0
+        ? `rgba(180, 140, 80, ${warmth / 100})`
+        : `rgba(80, 120, 180, ${Math.abs(warmth) / 100})`;
+      ctx.fillRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // Step 4: Grain
+    if (grain > 0) {
+      this.generateGrainTile(grain);
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = ctx.createPattern(this.grainCanvas, 'repeat');
+      ctx.fillRect(0, 0, width, height);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // Step 5: Vignette
+    if (vignette > 0) {
+      const cx = width / 2, cy = height / 2;
+      const maxR = Math.sqrt(cx * cx + cy * cy);
+      const grad = ctx.createRadialGradient(cx, cy, maxR * 0.3, cx, cy, maxR);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, `rgba(0,0,0,${vignette / 100})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    return performance.now() - t0;
+  }
+}
+
+// ============================================================
+// UI Controller
+// ============================================================
+const generator = new BackgroundGenerator();
+const imageLib = new ImageLibrary();
+const mainCanvas = document.getElementById('mainCanvas');
+
+let state = {
+  mode: 'procedural',
+  palette: 3,
+  blur: 60,
+  grain: 20,
+  vignette: 15,
+  saturation: 75,
+  warmth: 5,
+  width: 1920,
+  height: 1080,
+  seed: Math.floor(Math.random() * 999999) + 1,
+  cropScale: 50,
+  avoidText: true,
+};
+
+let renderTimeout = null;
+
+function getOptions(seed) {
+  return {
+    width: state.width,
+    height: state.height,
+    palette: state.palette,
+    seed: seed || state.seed,
+    blur: state.blur,
+    grain: state.grain,
+    vignette: state.vignette,
+    saturation: state.saturation,
+    warmth: state.warmth,
+    mode: state.mode,
+    imageLib: imageLib,
+    cropScale: state.cropScale,
+    avoidText: state.avoidText,
+  };
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('sidebar').dataset.mode = mode;
+  document.getElementById('modeImage').classList.toggle('active', mode === 'image');
+  document.getElementById('modeProcedural').classList.toggle('active', mode === 'procedural');
+  scheduleRender();
+}
+
+// Palette dropdown
+const paletteSelect = document.getElementById('paletteSelect');
+PALETTES.forEach((p, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = p.name;
+  if (i === state.palette) opt.selected = true;
+  paletteSelect.appendChild(opt);
+});
+
+function updatePalettePreview() {
+  const preview = document.getElementById('palettePreview');
+  const pal = PALETTES[state.palette];
+  const allColors = [...new Set([...pal.sky, ...pal.distantHill, ...pal.midGround, ...pal.foreground, ...pal.accent])];
+  preview.innerHTML = '';
+  allColors.slice(0, 8).forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.style.background = c;
+    preview.appendChild(s);
+  });
+}
+
+// Image library UI
+function updateLibraryUI() {
+  const container = document.getElementById('imageLibrary');
+  const actions = document.getElementById('libActions');
+  const countEl = document.getElementById('libCount');
+
+  container.innerHTML = '';
+
+  if (imageLib.images.length === 0) {
+    actions.style.display = 'none';
+    return;
+  }
+
+  actions.style.display = 'flex';
+  countEl.textContent = `${imageLib.images.length} image${imageLib.images.length !== 1 ? 's' : ''}`;
+
+  imageLib.images.forEach((item, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'lib-thumb' + (idx === imageLib.pinnedIndex ? ' pinned' : '');
+
+    const img = document.createElement('img');
+    img.src = item.dataUrl;
+    img.alt = item.name;
+    thumb.appendChild(img);
+
+    const remove = document.createElement('div');
+    remove.className = 'remove';
+    remove.textContent = '\u00d7';
+    remove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      imageLib.removeImage(idx);
+      updateLibraryUI();
+      scheduleRender();
+    });
+    thumb.appendChild(remove);
+
+    thumb.addEventListener('click', () => {
+      if (imageLib.pinnedIndex === idx) {
+        imageLib.pinnedIndex = -1;
+      } else {
+        imageLib.pinnedIndex = idx;
+      }
+      updateLibraryUI();
+      scheduleRender();
+    });
+
+    container.appendChild(thumb);
+  });
+}
+
+async function handleFiles(files) {
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    try {
+      await imageLib.addFromFile(file);
+    } catch (e) {
+      // Skip failed images
+    }
+  }
+  updateLibraryUI();
+  if (imageLib.images.length > 0) {
+    setMode('image');
+  }
+  scheduleRender();
+}
+
+// Drop zone
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('drag-over');
+});
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => {
+  handleFiles(fileInput.files);
+  fileInput.value = '';
+});
+
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  imageLib.clearAll();
+  updateLibraryUI();
+  if (state.mode === 'image') setMode('procedural');
+  scheduleRender();
+});
+
+// Mode toggle
+document.getElementById('modeImage').addEventListener('click', () => setMode('image'));
+document.getElementById('modeProcedural').addEventListener('click', () => setMode('procedural'));
+
+// Crop controls
+document.getElementById('cropRange').addEventListener('input', (e) => {
+  state.cropScale = parseInt(e.target.value);
+  document.getElementById('cropVal').textContent = state.cropScale + '%';
+  scheduleRender();
+});
+document.getElementById('avoidText').addEventListener('change', (e) => {
+  state.avoidText = e.target.checked;
+  scheduleRender();
+});
+
+// Render functions
+function renderMain() {
+  const ms = generator.render(mainCanvas, getOptions());
+  document.getElementById('renderTime').textContent = `${Math.round(ms)}ms`;
+}
+
+function renderVariations() {
+  const grid = document.getElementById('variationGrid');
+  grid.innerHTML = '';
+
+  for (let i = 0; i < 6; i++) {
+    const seed = Math.floor(Math.random() * 999999) + 1;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'variation-thumb';
+    const c = document.createElement('canvas');
+    wrapper.appendChild(c);
+    grid.appendChild(wrapper);
+
+    wrapper.addEventListener('click', () => {
+      state.seed = seed;
+      document.getElementById('seedInput').value = seed;
+      document.querySelectorAll('.variation-thumb').forEach((el, j) => {
+        el.classList.toggle('active', j === i);
+      });
+      renderMain();
+    });
+
+    setTimeout(() => {
+      const opts = getOptions(seed);
+      opts.width = 384;
+      opts.height = 240;
+      generator.render(c, opts);
+    }, i * 50);
+  }
+}
+
+function scheduleRender() {
+  clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(() => {
+    renderMain();
+    renderVariations();
+  }, 80);
+}
+
+function randomize() {
+  state.seed = Math.floor(Math.random() * 999999) + 1;
+  document.getElementById('seedInput').value = state.seed;
+  renderMain();
+  renderVariations();
+}
+
+// Palette
+paletteSelect.addEventListener('change', e => {
+  state.palette = parseInt(e.target.value);
+  updatePalettePreview();
+  scheduleRender();
+});
+
+// Shared sliders
+const sliders = [
+  { id: 'blurRange', key: 'blur', label: 'blurVal', format: v => v },
+  { id: 'grainRange', key: 'grain', label: 'grainVal', format: v => v },
+  { id: 'vignetteRange', key: 'vignette', label: 'vignetteVal', format: v => v },
+  { id: 'satRange', key: 'saturation', label: 'satVal', format: v => v + '%' },
+  { id: 'warmthRange', key: 'warmth', label: 'warmthVal', format: v => (v > 0 ? '+' : '') + v },
+];
+
+sliders.forEach(({ id, key, label, format }) => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    state[key] = parseInt(el.value);
+    document.getElementById(label).textContent = format(state[key]);
+    scheduleRender();
+  });
+});
+
+// Dimension presets
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.width = parseInt(btn.dataset.w);
+    state.height = parseInt(btn.dataset.h);
+    document.getElementById('widthInput').value = state.width;
+    document.getElementById('heightInput').value = state.height;
+    scheduleRender();
+  });
+});
+
+document.getElementById('widthInput').addEventListener('change', e => {
+  state.width = Math.max(100, Math.min(4096, parseInt(e.target.value) || 1920));
+  e.target.value = state.width;
+  scheduleRender();
+});
+document.getElementById('heightInput').addEventListener('change', e => {
+  state.height = Math.max(100, Math.min(4096, parseInt(e.target.value) || 1080));
+  e.target.value = state.height;
+  scheduleRender();
+});
+
+// Seed
+document.getElementById('seedInput').value = state.seed;
+document.getElementById('seedInput').addEventListener('change', e => {
+  const v = parseInt(e.target.value);
+  if (v && v > 0) { state.seed = v; renderMain(); }
+});
+
+// Buttons
+document.getElementById('randomizeBtn').addEventListener('click', randomize);
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const exportCanvas = document.createElement('canvas');
+  generator.render(exportCanvas, getOptions());
+  const link = document.createElement('a');
+  link.download = `vintage-bg-${state.seed}.png`;
+  link.href = exportCanvas.toDataURL('image/png');
+  link.click();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+    e.preventDefault();
+    randomize();
+  }
+});
+
+// Init: restore library from localStorage, then render
+async function init() {
+  updatePalettePreview();
+  await imageLib.restore();
+  updateLibraryUI();
+  if (imageLib.images.length > 0) {
+    setMode('image');
+  }
+  renderMain();
+  renderVariations();
+}
+
+init();
+</script>
+
+</body>
+</html>
