@@ -1,7 +1,7 @@
-# Project Guidelines
+# Outside.fun — Project Guidelines
 
 ## Overview
-Web application built with React/Next.js.
+Outside.fun is an ultralight backpacking trip planner. Currently a single-page React app (CDN-based), with a Next.js/TypeScript playground for UX experiments.
 
 ## Tech Stack
 - **Framework**: Next.js (React)

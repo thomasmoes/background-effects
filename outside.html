@@ -3,13 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Packing List</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Outside.fun</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Leaflet for maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
+    @font-face {
+      font-family: 'Agipo';
+      src: url('fonts/agipo-regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'Agipo';
+      src: url('fonts/agipo-bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -17,7 +35,7 @@
     }
 
     body {
-      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Agipo', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 14px;
       color: #1a1a1a;
       background: #f5f5f4;
@@ -196,23 +214,51 @@
     /* Category Card */
     .category-card {
       background: #ffffff;
+      border: 1px solid #e3e1dd;
       border-radius: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      margin-bottom: 0;
+    }
+
+    .categories-list > .category-card + .category-card {
+      border-top: none;
+      border-radius: 0;
+    }
+
+    .categories-list > .category-card:first-child {
+      border-radius: 12px 12px 0 0;
+    }
+
+    .categories-list > .category-card:last-child {
+      border-radius: 0 0 12px 12px;
+    }
+
+    .categories-list > .category-card:only-child {
+      border-radius: 12px;
     }
 
     .category-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 18px 24px;
       cursor: pointer;
       user-select: none;
     }
 
     .category-header:hover {
       background: #fafaf9;
-      border-radius: 12px;
+    }
+
+    .categories-list > .category-card:first-child .category-header:hover {
+      border-radius: 11px 11px 0 0;
+    }
+
+    .categories-list > .category-card:last-child .category-header:hover {
+      border-radius: 0 0 11px 11px;
+    }
+
+    .categories-list > .category-card:only-child .category-header:hover {
+      border-radius: 11px;
     }
 
     .category-header-left {
@@ -222,14 +268,26 @@
     }
 
     .collapse-icon {
-      color: #a8a29e;
-      font-size: 12px;
-      transition: transform 0.2s;
+      transition: transform 0.15s;
       width: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(0deg);
     }
 
     .collapse-icon.collapsed {
       transform: rotate(-90deg);
+    }
+
+    .collapse-icon svg {
+      width: 11px;
+      height: 7px;
+      fill: none;
+      stroke: #000000;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .category-emoji {
@@ -237,21 +295,21 @@
     }
 
     .category-name {
-      font-weight: 600;
-      font-size: 15px;
-      color: #1c1917;
+      font-weight: 700;
+      font-size: 18px;
+      color: #000000;
     }
 
     .category-header-right {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
     }
 
     .category-weight {
       font-size: 14px;
-      font-weight: 500;
-      color: #78716c;
+      font-weight: 700;
+      color: #000000;
     }
 
     /* Items Table */
@@ -262,19 +320,22 @@
 
     .items-table th {
       text-align: left;
-      padding: 8px 20px;
-      font-size: 11px;
-      font-weight: 500;
-      color: #a8a29e;
+      padding: 10px 24px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000000;
+      opacity: 0.45;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      border-bottom: 1px solid #f5f5f4;
+      border-top: 1px solid #e3e1dd;
+      border-bottom: 1px solid #e3e1dd;
     }
 
     .items-table td {
-      padding: 12px 20px;
-      border-bottom: 1px solid #f5f5f4;
-      color: #44403c;
+      padding: 14px 24px;
+      border-bottom: 1px solid #e3e1dd;
+      color: #000000;
+      font-size: 14px;
     }
 
     .items-table tr:last-child td {
@@ -286,25 +347,63 @@
     }
 
     .item-name {
-      font-weight: 500;
-      color: #1c1917;
+      font-weight: 400;
+      color: #000000;
     }
 
     .item-description {
-      color: #78716c;
+      color: #000000;
     }
 
-    .col-name { width: 25%; }
+    .weight-auto-filled {
+      color: #6366f1 !important;
+    }
+
+    .weight-auto-filled::after {
+      content: ' ✓';
+      font-size: 10px;
+    }
+
+    .col-image { width: 40px; text-align: center; }
+    .col-name { width: 15%; }
     .col-description { width: 35%; }
-    .col-qty { width: 10%; text-align: center; }
+    .col-qty { width: 8%; text-align: center; }
     .col-weight { width: 12%; text-align: right; }
     .col-total { width: 12%; text-align: right; }
-    .col-actions { width: 6%; text-align: center; }
+    .col-actions { width: 5%; text-align: center; }
+
+    .item-image-cell {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f5f5f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .item-image-cell:hover {
+      background: #e7e5e4;
+    }
+
+    .item-image-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .item-image-cell-placeholder {
+      font-size: 14px;
+      color: #a8a29e;
+    }
 
     .delete-btn {
       background: none;
       border: none;
-      color: #d6d3d1;
+      color: #a8a29e;
       cursor: pointer;
       font-size: 14px;
       padding: 4px;
@@ -326,12 +425,13 @@
     }
 
     .add-item-row td {
-      color: #a8a29e;
-      padding: 12px 20px;
+      color: #000000;
+      opacity: 0.5;
+      padding: 14px 24px;
     }
 
     .add-item-row:hover td {
-      color: #78716c;
+      opacity: 0.7;
       background: transparent !important;
     }
 
@@ -339,6 +439,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      font-size: 14px;
     }
 
     /* Add Category Button */
@@ -346,10 +447,11 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 16px 20px;
-      color: #a8a29e;
-      font-size: 14px;
-      font-weight: 500;
+      padding: 16px 24px;
+      color: #000000;
+      opacity: 0.4;
+      font-size: 18px;
+      font-weight: 400;
       background: none;
       border: none;
       cursor: pointer;
@@ -357,7 +459,328 @@
     }
 
     .add-category-btn:hover {
+      opacity: 0.6;
+    }
+
+    /* View Mode Toggle */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      background: #f5f5f4;
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .view-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
       color: #78716c;
+      font-size: 16px;
+      transition: all 0.15s;
+    }
+
+    .view-toggle-btn:hover {
+      color: #44403c;
+    }
+
+    .view-toggle-btn.active {
+      background: white;
+      color: #1c1917;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Bag View - Flat Lay Style */
+    .bag-view {
+      background: #f8f7f6;
+      border: 1px solid #e3e1dd;
+      border-radius: 16px;
+      padding: 40px;
+      min-height: 600px;
+      position: relative;
+    }
+
+    .bag-view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .bag-view-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #78716c;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .bag-view-weight {
+      font-size: 14px;
+      color: #78716c;
+      font-weight: 500;
+    }
+
+    /* Category clusters container */
+    .bag-outline {
+      /* Simple container, no backpack illustration */
+    }
+
+    /* Category clusters container */
+    .bag-category-clusters {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .bag-cluster {
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .bag-cluster-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e7e5e4;
+    }
+
+    .bag-cluster-icon {
+      font-size: 16px;
+    }
+
+    .bag-cluster-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #44403c;
+    }
+
+    .bag-cluster-weight {
+      font-size: 12px;
+      color: #a8a29e;
+      margin-left: auto;
+    }
+
+    /* Flat lay grid - CSS Grid for tetris-like packing */
+    .bag-contents {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 40px);
+      grid-auto-rows: 40px;
+      gap: 6px;
+      justify-content: start;
+      align-content: start;
+    }
+
+    .bag-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      padding: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bag-item:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    .bag-item-image {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+    }
+
+    .bag-item-image img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .bag-item-placeholder {
+      background: #f0efed;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #a8a29e;
+      width: 70%;
+      height: 70%;
+    }
+
+    .bag-item-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(255,255,255,0.95));
+      padding: 4px 4px 3px;
+      text-align: center;
+    }
+
+    .bag-item-name {
+      font-weight: 500;
+      color: #44403c;
+      line-height: 1.1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
+
+    .bag-item-weight {
+      color: #a8a29e;
+      display: block;
+    }
+
+    .bag-item-qty {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      background: #44403c;
+      color: white;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 8px;
+      font-size: 9px;
+      z-index: 2;
+    }
+
+    .bag-item-wrapper {
+      position: relative;
+    }
+
+    /* Shape & Size Combinations */
+    /* XS - Tiny items (pills, small accessories) */
+    .bag-item-xs-square { grid-column: span 1; grid-row: span 1; }
+    .bag-item-xs-square .bag-item-name { font-size: 7px; }
+    .bag-item-xs-square .bag-item-weight { font-size: 6px; }
+    .bag-item-xs-square .bag-item-placeholder { font-size: 10px; }
+    .bag-item-xs-square .bag-item-label { display: none; }
+
+    .bag-item-xs-round { grid-column: span 1; grid-row: span 1; border-radius: 50%; }
+    .bag-item-xs-round .bag-item-placeholder { border-radius: 50%; }
+    .bag-item-xs-round .bag-item-label { display: none; }
+
+    /* SM - Small items */
+    .bag-item-sm-square { grid-column: span 2; grid-row: span 2; }
+    .bag-item-sm-square .bag-item-name { font-size: 9px; }
+    .bag-item-sm-square .bag-item-weight { font-size: 8px; }
+    .bag-item-sm-square .bag-item-placeholder { font-size: 16px; }
+
+    .bag-item-sm-round { grid-column: span 2; grid-row: span 2; border-radius: 50%; }
+    .bag-item-sm-round .bag-item-placeholder { border-radius: 50%; font-size: 16px; }
+    .bag-item-sm-round .bag-item-label { display: none; }
+
+    .bag-item-sm-wide { grid-column: span 3; grid-row: span 1; border-radius: 20px; }
+    .bag-item-sm-wide .bag-item-name { font-size: 8px; }
+    .bag-item-sm-wide .bag-item-weight { font-size: 7px; }
+    .bag-item-sm-wide .bag-item-placeholder { font-size: 12px; width: 50%; border-radius: 10px; }
+
+    .bag-item-sm-tall { grid-column: span 1; grid-row: span 3; border-radius: 20px; }
+    .bag-item-sm-tall .bag-item-name { font-size: 8px; writing-mode: vertical-rl; text-orientation: mixed; }
+    .bag-item-sm-tall .bag-item-weight { display: none; }
+    .bag-item-sm-tall .bag-item-placeholder { font-size: 12px; height: 50%; border-radius: 10px; }
+    .bag-item-sm-tall .bag-item-label { display: none; }
+
+    /* MD - Medium items */
+    .bag-item-md-square { grid-column: span 3; grid-row: span 3; }
+    .bag-item-md-square .bag-item-name { font-size: 10px; }
+    .bag-item-md-square .bag-item-weight { font-size: 9px; }
+    .bag-item-md-square .bag-item-placeholder { font-size: 20px; }
+
+    .bag-item-md-round { grid-column: span 3; grid-row: span 3; border-radius: 50%; }
+    .bag-item-md-round .bag-item-placeholder { border-radius: 50%; font-size: 20px; }
+    .bag-item-md-round .bag-item-label { background: radial-gradient(ellipse at center bottom, rgba(255,255,255,0.9) 0%, transparent 70%); }
+
+    .bag-item-md-wide { grid-column: span 4; grid-row: span 2; border-radius: 16px; }
+    .bag-item-md-wide .bag-item-name { font-size: 10px; }
+    .bag-item-md-wide .bag-item-weight { font-size: 9px; }
+    .bag-item-md-wide .bag-item-placeholder { font-size: 18px; width: 60%; border-radius: 12px; }
+
+    .bag-item-md-tall { grid-column: span 2; grid-row: span 4; border-radius: 16px; }
+    .bag-item-md-tall .bag-item-name { font-size: 10px; }
+    .bag-item-md-tall .bag-item-weight { font-size: 9px; }
+    .bag-item-md-tall .bag-item-placeholder { font-size: 18px; height: 60%; border-radius: 12px; }
+
+    /* LG - Large items */
+    .bag-item-lg-square { grid-column: span 4; grid-row: span 4; }
+    .bag-item-lg-square .bag-item-name { font-size: 11px; }
+    .bag-item-lg-square .bag-item-weight { font-size: 10px; }
+    .bag-item-lg-square .bag-item-placeholder { font-size: 28px; }
+
+    .bag-item-lg-wide { grid-column: span 5; grid-row: span 3; border-radius: 20px; }
+    .bag-item-lg-wide .bag-item-name { font-size: 11px; }
+    .bag-item-lg-wide .bag-item-weight { font-size: 10px; }
+    .bag-item-lg-wide .bag-item-placeholder { font-size: 24px; width: 50%; border-radius: 16px; }
+
+    .bag-item-lg-tall { grid-column: span 3; grid-row: span 5; border-radius: 20px; }
+    .bag-item-lg-tall .bag-item-name { font-size: 11px; }
+    .bag-item-lg-tall .bag-item-weight { font-size: 10px; }
+    .bag-item-lg-tall .bag-item-placeholder { font-size: 24px; height: 50%; border-radius: 16px; }
+
+    .bag-item-lg-round { grid-column: span 4; grid-row: span 4; border-radius: 50%; }
+    .bag-item-lg-round .bag-item-placeholder { border-radius: 50%; font-size: 28px; }
+    .bag-item-lg-round .bag-item-label { background: radial-gradient(ellipse at center bottom, rgba(255,255,255,0.9) 0%, transparent 70%); }
+
+    /* XL - Extra large items (tents, backpacks) */
+    .bag-item-xl-square { grid-column: span 5; grid-row: span 5; }
+    .bag-item-xl-square .bag-item-name { font-size: 12px; }
+    .bag-item-xl-square .bag-item-weight { font-size: 11px; }
+    .bag-item-xl-square .bag-item-placeholder { font-size: 36px; }
+
+    .bag-item-xl-wide { grid-column: span 6; grid-row: span 4; border-radius: 24px; }
+    .bag-item-xl-wide .bag-item-name { font-size: 12px; }
+    .bag-item-xl-wide .bag-item-weight { font-size: 11px; }
+    .bag-item-xl-wide .bag-item-placeholder { font-size: 32px; width: 50%; border-radius: 20px; }
+
+    .bag-item-xl-tall { grid-column: span 4; grid-row: span 6; border-radius: 24px; }
+    .bag-item-xl-tall .bag-item-name { font-size: 12px; }
+    .bag-item-xl-tall .bag-item-weight { font-size: 11px; }
+    .bag-item-xl-tall .bag-item-placeholder { font-size: 32px; height: 50%; border-radius: 20px; }
+
+    /* Legacy category styles (hidden by default in new layout) */
+    .bag-categories { display: none; }
+
+    /* Item Image Modal */
+    .item-image-field {
+      margin-top: 8px;
+    }
+
+    .item-image-preview {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      background: #f5f5f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .item-image-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
 
     /* Options Menu */
@@ -788,6 +1211,72 @@
       color: #57534e;
       font-size: 14px;
       margin: 16px 0;
+    }
+
+    /* Leaflet Map */
+    .map-container {
+      height: 220px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 16px 0;
+      border: 1px solid #e7e5e4;
+    }
+
+    .map-container-large {
+      height: 300px;
+    }
+
+    /* GPX Upload */
+    .gpx-upload {
+      border: 2px dashed #d6d3d1;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafaf9;
+    }
+
+    .gpx-upload:hover {
+      border-color: #a8a29e;
+      background: #f5f5f4;
+    }
+
+    .gpx-upload.has-file {
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+
+    .gpx-upload-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .gpx-upload-text {
+      font-size: 13px;
+      color: #78716c;
+    }
+
+    .gpx-upload-filename {
+      font-size: 13px;
+      font-weight: 500;
+      color: #22c55e;
+      margin-top: 4px;
+    }
+
+    .gpx-stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #57534e;
+      justify-content: center;
+    }
+
+    .gpx-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     /* Gear Section in Dashboard */
@@ -1244,6 +1733,18 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+
+    /* Section Title */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #57534e;
+      margin: 24px 0 12px 0;
+    }
+
+    .section-title:first-of-type {
+      margin-top: 0;
+    }
   </style>
 </head>
 <body>
@@ -1266,6 +1767,189 @@
       if (!dateStr) return '';
       const date = new Date(dateStr);
       return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    // ==================== Featherweight Gear Database ====================
+    // Open source ultralight gear database with 40,000+ items
+    // Source: https://github.com/MooseV2/featherweight
+    const FeatherweightDB = {
+      items: [],
+      loaded: false,
+      loading: false,
+
+      async load() {
+        if (this.loaded || this.loading) return;
+        this.loading = true;
+
+        try {
+          // Check localStorage cache first
+          const cached = localStorage.getItem('featherweightDB');
+          const cacheTime = localStorage.getItem('featherweightDB_time');
+          const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+          if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < oneWeek) {
+            this.items = JSON.parse(cached);
+            this.loaded = true;
+            this.loading = false;
+            console.log(`Featherweight DB loaded from cache: ${this.items.length} items`);
+            return;
+          }
+
+          // Fetch from GitHub
+          const response = await fetch('https://moosev2.github.io/featherweight/assets/ul_items.txt');
+          const text = await response.text();
+
+          // Parse CSV: weight (in milligrams), item name
+          this.items = text.trim().split('\n').map(line => {
+            const commaIndex = line.indexOf(',');
+            if (commaIndex === -1) return null;
+            const weightMg = parseInt(line.slice(0, commaIndex));
+            const name = line.slice(commaIndex + 1).trim();
+            return {
+              name: name,
+              weight: weightMg / 1000, // Convert mg to grams
+              nameLower: name.toLowerCase()
+            };
+          }).filter(item => item !== null);
+
+          // Cache in localStorage
+          localStorage.setItem('featherweightDB', JSON.stringify(this.items));
+          localStorage.setItem('featherweightDB_time', Date.now().toString());
+
+          this.loaded = true;
+          console.log(`Featherweight DB loaded: ${this.items.length} items`);
+        } catch (error) {
+          console.error('Failed to load Featherweight DB:', error);
+        }
+        this.loading = false;
+      },
+
+      // Search for items matching a query
+      search(query, limit = 10) {
+        if (!this.loaded || !query) return [];
+
+        const queryLower = query.toLowerCase().trim();
+        const words = queryLower.split(/\s+/);
+
+        // Score items by match quality
+        const scored = this.items.map(item => {
+          let score = 0;
+          const nameLower = item.nameLower;
+
+          // Exact match
+          if (nameLower === queryLower) score += 100;
+          // Starts with query
+          else if (nameLower.startsWith(queryLower)) score += 50;
+          // Contains full query
+          else if (nameLower.includes(queryLower)) score += 30;
+          // Contains all words
+          else if (words.every(w => nameLower.includes(w))) score += 20;
+          // Contains some words
+          else {
+            const matchedWords = words.filter(w => nameLower.includes(w));
+            score += matchedWords.length * 5;
+          }
+
+          return { ...item, score };
+        }).filter(item => item.score > 0);
+
+        // Sort by score descending, then by name length (prefer shorter/simpler names)
+        scored.sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return a.name.length - b.name.length;
+        });
+
+        return scored.slice(0, limit);
+      },
+
+      // Find the best weight match for an item name
+      findWeight(itemName) {
+        const results = this.search(itemName, 1);
+        return results.length > 0 ? results[0].weight : null;
+      }
+    };
+
+    // Load database on startup
+    FeatherweightDB.load();
+
+    // ==================== GPX Parser ====================
+    const parseGPX = (gpxString) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(gpxString, 'text/xml');
+
+      const coordinates = [];
+      let totalDistance = 0;
+      let elevationGain = 0;
+      let elevationLoss = 0;
+      let minElevation = Infinity;
+      let maxElevation = -Infinity;
+
+      // Get track points
+      const trkpts = xmlDoc.querySelectorAll('trkpt');
+      const rtepts = xmlDoc.querySelectorAll('rtept');
+      const wpts = xmlDoc.querySelectorAll('wpt');
+
+      const points = trkpts.length > 0 ? trkpts : (rtepts.length > 0 ? rtepts : wpts);
+
+      let prevLat = null;
+      let prevLon = null;
+      let prevEle = null;
+
+      points.forEach((pt, index) => {
+        const lat = parseFloat(pt.getAttribute('lat'));
+        const lon = parseFloat(pt.getAttribute('lon'));
+        const eleNode = pt.querySelector('ele');
+        const ele = eleNode ? parseFloat(eleNode.textContent) : null;
+
+        if (!isNaN(lat) && !isNaN(lon)) {
+          coordinates.push([lat, lon, ele]);
+
+          // Calculate elevation stats
+          if (ele !== null) {
+            if (ele < minElevation) minElevation = ele;
+            if (ele > maxElevation) maxElevation = ele;
+
+            if (prevEle !== null) {
+              const eleDiff = ele - prevEle;
+              if (eleDiff > 0) elevationGain += eleDiff;
+              else elevationLoss += Math.abs(eleDiff);
+            }
+            prevEle = ele;
+          }
+
+          // Calculate distance using Haversine formula
+          if (prevLat !== null && prevLon !== null) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat - prevLat) * Math.PI / 180;
+            const dLon = (lon - prevLon) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(prevLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            totalDistance += R * c;
+          }
+
+          prevLat = lat;
+          prevLon = lon;
+        }
+      });
+
+      // Get track name
+      const nameNode = xmlDoc.querySelector('trk > name') || xmlDoc.querySelector('name');
+      const name = nameNode ? nameNode.textContent : null;
+
+      return {
+        coordinates,
+        name,
+        stats: {
+          distance: totalDistance.toFixed(1),
+          elevationGain: Math.round(elevationGain),
+          elevationLoss: Math.round(elevationLoss),
+          minElevation: minElevation === Infinity ? null : Math.round(minElevation),
+          maxElevation: maxElevation === -Infinity ? null : Math.round(maxElevation),
+          points: coordinates.length
+        }
+      };
     };
 
     // ==================== Category Icons ====================
@@ -1708,6 +2392,306 @@
       </div>
     );
 
+    // ==================== GPX Map Component ====================
+    const GPXMap = ({ coordinates, className = '' }) => {
+      const mapRef = useRef(null);
+      const mapInstanceRef = useRef(null);
+      const polylineRef = useRef(null);
+
+      useEffect(() => {
+        if (!mapRef.current || !coordinates || coordinates.length === 0) return;
+
+        // Initialize map if not already done
+        if (!mapInstanceRef.current) {
+          mapInstanceRef.current = L.map(mapRef.current, {
+            zoomControl: true,
+            scrollWheelZoom: true
+          });
+
+          // Add OpenStreetMap tiles
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+          }).addTo(mapInstanceRef.current);
+        }
+
+        // Remove existing polyline
+        if (polylineRef.current) {
+          mapInstanceRef.current.removeLayer(polylineRef.current);
+        }
+
+        // Create polyline from coordinates
+        const latLngs = coordinates.map(coord => [coord[0], coord[1]]);
+        polylineRef.current = L.polyline(latLngs, {
+          color: '#3b82f6',
+          weight: 3,
+          opacity: 0.8
+        }).addTo(mapInstanceRef.current);
+
+        // Add start and end markers
+        if (latLngs.length > 0) {
+          const startIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #22c55e; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+          });
+          const endIcon = L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+          });
+
+          L.marker(latLngs[0], { icon: startIcon }).addTo(mapInstanceRef.current);
+          L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).addTo(mapInstanceRef.current);
+        }
+
+        // Fit bounds to show entire route
+        mapInstanceRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [20, 20] });
+
+        return () => {
+          // Cleanup on unmount
+        };
+      }, [coordinates]);
+
+      // Cleanup map on component unmount
+      useEffect(() => {
+        return () => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+          }
+        };
+      }, []);
+
+      if (!coordinates || coordinates.length === 0) {
+        return (
+          <div className="map-placeholder">
+            🗺️ No GPX data available
+          </div>
+        );
+      }
+
+      return <div ref={mapRef} className={`map-container ${className}`}></div>;
+    };
+
+    // ==================== GPX Upload Component ====================
+    const GPXUpload = ({ value, onChange, onParsed }) => {
+      const [isDragging, setIsDragging] = useState(false);
+      const [fileName, setFileName] = useState(value?.fileName || '');
+      const [stats, setStats] = useState(value?.stats || null);
+      const inputRef = useRef(null);
+
+      const handleFile = (file) => {
+        if (!file || !file.name.toLowerCase().endsWith('.gpx')) {
+          alert('Please upload a .gpx file');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const gpxString = e.target.result;
+          const parsed = parseGPX(gpxString);
+
+          setFileName(file.name);
+          setStats(parsed.stats);
+
+          onChange({
+            fileName: file.name,
+            coordinates: parsed.coordinates,
+            stats: parsed.stats,
+            gpxName: parsed.name
+          });
+
+          if (onParsed) {
+            onParsed(parsed);
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        handleFile(file);
+      };
+
+      const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      };
+
+      const handleDragLeave = () => {
+        setIsDragging(false);
+      };
+
+      const handleClick = () => {
+        inputRef.current?.click();
+      };
+
+      const handleInputChange = (e) => {
+        const file = e.target.files[0];
+        handleFile(file);
+      };
+
+      const handleRemove = (e) => {
+        e.stopPropagation();
+        setFileName('');
+        setStats(null);
+        onChange(null);
+      };
+
+      return (
+        <div
+          className={`gpx-upload ${fileName ? 'has-file' : ''} ${isDragging ? 'dragging' : ''}`}
+          onClick={handleClick}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".gpx"
+            onChange={handleInputChange}
+            style={{ display: 'none' }}
+          />
+          <div className="gpx-upload-icon">{fileName ? '✅' : '📍'}</div>
+          <div className="gpx-upload-text">
+            {fileName ? 'GPX file loaded' : 'Drop GPX file here or click to upload'}
+          </div>
+          {fileName && (
+            <>
+              <div className="gpx-upload-filename">
+                {fileName}
+                <button
+                  onClick={handleRemove}
+                  style={{ marginLeft: 8, background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              </div>
+              {stats && (
+                <div className="gpx-stats">
+                  <span className="gpx-stat">📏 {stats.distance} km</span>
+                  <span className="gpx-stat">⬆️ {stats.elevationGain}m</span>
+                  <span className="gpx-stat">📍 {stats.points} pts</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // ==================== Elevation Profile Component ====================
+    const ElevationProfile = ({ coordinates }) => {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+
+      useEffect(() => {
+        if (!canvasRef.current || !coordinates || coordinates.length === 0) return;
+
+        // Extract elevation data and calculate cumulative distance
+        const data = [];
+        let cumulativeDistance = 0;
+
+        for (let i = 0; i < coordinates.length; i++) {
+          const coord = coordinates[i];
+          const elevation = coord[2];
+
+          if (elevation !== null && elevation !== undefined) {
+            if (i > 0) {
+              const prev = coordinates[i - 1];
+              const R = 6371; // Earth's radius in km
+              const dLat = (coord[0] - prev[0]) * Math.PI / 180;
+              const dLon = (coord[1] - prev[1]) * Math.PI / 180;
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(prev[0] * Math.PI / 180) * Math.cos(coord[0] * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              cumulativeDistance += R * c;
+            }
+            data.push({ x: cumulativeDistance, y: elevation });
+          }
+        }
+
+        // Sample data if too many points (for performance)
+        const maxPoints = 200;
+        let sampledData = data;
+        if (data.length > maxPoints) {
+          const step = Math.ceil(data.length / maxPoints);
+          sampledData = data.filter((_, i) => i % step === 0);
+        }
+
+        if (chartRef.current) chartRef.current.destroy();
+
+        chartRef.current = new Chart(canvasRef.current, {
+          type: 'line',
+          data: {
+            datasets: [{
+              data: sampledData,
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0,
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${Math.round(ctx.parsed.y)}m at ${ctx.parsed.x.toFixed(1)}km`
+                }
+              }
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                title: { display: false },
+                ticks: {
+                  callback: (val) => `${Math.round(val)} km`,
+                  font: { size: 10 },
+                  color: '#a8a29e'
+                },
+                grid: { color: '#f5f5f4' }
+              },
+              y: {
+                title: { display: false },
+                ticks: {
+                  callback: (val) => `${val} m`,
+                  font: { size: 10 },
+                  color: '#a8a29e'
+                },
+                grid: { color: '#f5f5f4', drawBorder: false }
+              }
+            }
+          }
+        });
+
+        return () => {
+          if (chartRef.current) chartRef.current.destroy();
+        };
+      }, [coordinates]);
+
+      if (!coordinates || coordinates.length === 0 || !coordinates.some(c => c[2] != null)) {
+        return null;
+      }
+
+      return (
+        <div style={{ height: 120, marginTop: 16 }}>
+          <canvas ref={canvasRef}></canvas>
+        </div>
+      );
+    };
+
     // ==================== Weight Chart ====================
     const WeightChart = ({ categories }) => {
       const canvasRef = useRef(null);
@@ -1783,7 +2767,7 @@
 
       const handleAddItem = () => {
         onAddItem(category.id, {
-          id: generateId(), name: '', description: '', weight: 0, quantity: 1
+          id: generateId(), name: '', description: '', weight: 0, quantity: 1, imageUrl: ''
         });
       };
 
@@ -1791,7 +2775,7 @@
         <div className="category-card">
           <div className="category-header" onClick={() => setCollapsed(!collapsed)}>
             <div className="category-header-left">
-              <span className={`collapse-icon ${collapsed ? 'collapsed' : ''}`}>›</span>
+              <span className={`collapse-icon ${collapsed ? 'collapsed' : ''}`}><svg viewBox="0 0 11 7"><polyline points="1,1 5.5,5.5 10,1" /></svg></span>
               <span className="category-emoji">{category.icon}</span>
               <span className="category-name">{category.name}</span>
             </div>
@@ -1810,6 +2794,7 @@
             <table className="items-table">
               <thead>
                 <tr>
+                  <th className="col-image"></th>
                   <th className="col-name">Name</th>
                   <th className="col-description">Description</th>
                   <th className="col-qty">Qty</th>
@@ -1821,16 +2806,50 @@
               <tbody>
                 {category.items.map(item => (
                   <tr key={item.id}>
-                    <td><EditableCell value={item.name} onChange={(v) => onUpdateItem(category.id, { ...item, name: v })} placeholder="Item name" className="item-name" /></td>
+                    <td>
+                      <div
+                        className="item-image-cell"
+                        onClick={() => {
+                          const url = prompt('Image URL (transparent PNG recommended):', item.imageUrl || '');
+                          if (url !== null) onUpdateItem(category.id, { ...item, imageUrl: url });
+                        }}
+                        title="Click to add image"
+                      >
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} />
+                        ) : (
+                          <span className="item-image-cell-placeholder">+</span>
+                        )}
+                      </div>
+                    </td>
+                    <td><EditableCell value={item.name} onChange={(v) => {
+                      const updates = { ...item, name: v };
+                      // Auto-fill weight from Featherweight DB if weight is empty/zero
+                      if (v && (!item.weight || item.weight === 0)) {
+                        const dbWeight = FeatherweightDB.findWeight(v);
+                        if (dbWeight) {
+                          updates.weight = Math.round(dbWeight);
+                          updates.weightAutoFilled = true;
+                        }
+                      }
+                      onUpdateItem(category.id, updates);
+                    }} placeholder="Item name" className="item-name" /></td>
                     <td><EditableCell value={item.description} onChange={(v) => onUpdateItem(category.id, { ...item, description: v })} placeholder="Description" className="item-description" /></td>
                     <td style={{ textAlign: 'center' }}><EditableCell value={item.quantity || 1} onChange={(v) => onUpdateItem(category.id, { ...item, quantity: parseInt(v) || 1 })} type="number" /></td>
-                    <td style={{ textAlign: 'right' }}><EditableCell value={item.weight ? `${item.weight}g` : ''} onChange={(v) => onUpdateItem(category.id, { ...item, weight: parseFloat(v) || 0 })} placeholder="0g" /></td>
-                    <td style={{ textAlign: 'right', color: '#78716c' }}>{formatWeight((item.weight || 0) * (item.quantity || 1))}</td>
+                    <td style={{ textAlign: 'right' }} title={item.weightAutoFilled ? 'Weight auto-filled from Featherweight database' : ''}>
+                      <EditableCell
+                        value={item.weight ? `${item.weight}g` : ''}
+                        onChange={(v) => onUpdateItem(category.id, { ...item, weight: parseFloat(v) || 0, weightAutoFilled: false })}
+                        placeholder="0g"
+                        className={item.weightAutoFilled ? 'weight-auto-filled' : ''}
+                      />
+                    </td>
+                    <td style={{ textAlign: 'right' }}>{formatWeight((item.weight || 0) * (item.quantity || 1))}</td>
                     <td><button className="delete-btn" onClick={() => onDeleteItem(category.id, item.id)}>×</button></td>
                   </tr>
                 ))}
                 <tr className="add-item-row" onClick={handleAddItem}>
-                  <td colSpan="6"><div className="add-item-text"><span>+</span> Add new item</div></td>
+                  <td colSpan="7"><div className="add-item-text"><span>+</span> Add new item</div></td>
                 </tr>
               </tbody>
             </table>
@@ -1839,10 +2858,141 @@
       );
     };
 
+    // ==================== Bag View ====================
+    // Estimate item size and shape based on name, description, category, and weight
+    const estimateItemSizeAndShape = (item, categoryName) => {
+      const name = (item.name || '').toLowerCase();
+      const desc = (item.description || '').toLowerCase();
+      const cat = (categoryName || '').toLowerCase();
+      const text = `${name} ${desc} ${cat}`;
+      const weight = item.weight || 0;
+
+      let size = 'md';
+      let shape = 'square';
+
+      // === SIZE ESTIMATION ===
+      // Extra large items
+      const xlPatterns = ['tent', 'tarp', 'shelter', 'hammock', 'backpack', 'bivy'];
+      if (xlPatterns.some(p => text.includes(p))) size = 'xl';
+      // Large items
+      else if (['sleeping bag', 'quilt', 'sleeping pad', 'pad', 'mattress', 'jacket', 'pants', 'trousers', 'fleece', 'puffy', 'down jacket', 'rain jacket', 'cook set', 'cookset', 'pot', 'bear canister', 'dry bag', 'stuff sack', 'shirt', 'hoodie', 'sweater'].some(p => text.includes(p))) size = 'lg';
+      // Small items
+      else if (['toothbrush', 'toothpaste', 'floss', 'sunscreen', 'lip balm', 'chapstick', 'pills', 'medicine', 'band-aid', 'bandaid', 'lighter', 'match', 'earplugs', 'whistle', 'compass', 'thermometer', 'needle', 'thread', 'button', 'safety pin', 'sim card', 'memory card', 'sd card', 'usb', 'cable', 'adapter', 'batteries', 'battery', 'salt', 'pepper', 'seasoning', 'vitamin', 'ibuprofen', 'aspirin', 'tape', 'duct tape', 'repair', 'patch', 'guyline', 'cordage', 'mini', 'tiny', 'small', 'spork', 'knife', 'multi-tool', 'multitool'].some(p => text.includes(p))) size = 'sm';
+      // Extra small items
+      else if (['pill', 'tablet', 'capsule', 'coin', 'key', 'sim', 'micro', 'button'].some(p => text.includes(p))) size = 'xs';
+      // Weight-based fallback
+      else if (weight > 800) size = 'xl';
+      else if (weight > 400) size = 'lg';
+      else if (weight > 100) size = 'md';
+      else if (weight > 30) size = 'sm';
+      else if (weight > 0) size = 'xs';
+
+      // === SHAPE ESTIMATION ===
+      // Tall/vertical items (poles, bottles, rolled clothes, trekking poles)
+      const tallPatterns = ['pole', 'poles', 'trekking', 'hiking pole', 'tent pole', 'bottle', 'flask', 'thermos', 'rolled', 'umbrella', 'tripod', 'monopod', 'stakes', 'stake', 'pegs'];
+      if (tallPatterns.some(p => text.includes(p))) shape = 'tall';
+
+      // Wide/horizontal items (sleeping pads, folded clothes, keyboards, tablets)
+      const widePatterns = ['sleeping pad', 'pad', 'mattress', 'keyboard', 'tablet', 'laptop', 'folded', 'shirt', 't-shirt', 'tshirt', 'shorts', 'underwear', 'boxers', 'briefs', 'map', 'book', 'notebook', 'journal', 'towel', 'bandana', 'buff', 'ground sheet', 'footprint'];
+      if (widePatterns.some(p => text.includes(p))) shape = 'wide';
+
+      // Round items (pots, bowls, containers, canisters, tape rolls)
+      const roundPatterns = ['pot', 'bowl', 'mug', 'cup', 'canister', 'fuel', 'gas', 'vaseline', 'balm', 'cream', 'lotion', 'sunscreen', 'container', 'jar', 'tin', 'puck', 'disc', 'roll', 'tape', 'lens', 'watch', 'compass', 'headlamp', 'lamp', 'light', 'lantern', 'stove', 'burner', 'cookware'];
+      if (roundPatterns.some(p => text.includes(p))) shape = 'round';
+
+      // Pants, trousers - tall and folded
+      if (['pants', 'trousers', 'leggings', 'tights', 'long johns'].some(p => text.includes(p))) shape = 'tall';
+
+      // Jackets, fleece - wide when folded
+      if (['jacket', 'fleece', 'hoodie', 'sweater', 'puffy', 'down'].some(p => text.includes(p))) shape = 'wide';
+
+      // Sleeping bags, quilts - wide cylinder
+      if (['sleeping bag', 'quilt', 'blanket'].some(p => text.includes(p))) shape = 'wide';
+
+      // Tents, tarps - usually packed wide
+      if (['tent', 'tarp', 'shelter', 'fly'].some(p => text.includes(p))) shape = 'wide';
+
+      // Socks, gloves - small square
+      if (['socks', 'sock', 'gloves', 'glove', 'mittens', 'beanie', 'hat', 'cap'].some(p => text.includes(p))) shape = 'square';
+
+      return { size, shape };
+    };
+
+    const BagView = ({ categories, onItemClick }) => {
+      const getTotalWeight = () => categories.reduce((sum, cat) =>
+        sum + cat.items.reduce((s, item) => s + ((item.weight || 0) * (item.quantity || 1)), 0), 0);
+
+      const getCategoryWeight = (cat) => cat.items.reduce((sum, item) =>
+        sum + ((item.weight || 0) * (item.quantity || 1)), 0);
+
+      // Sort items within category: larger items first for better packing
+      const sizeOrder = { xl: 0, lg: 1, md: 2, sm: 3, xs: 4 };
+      const sortItemsBySize = (items, categoryName) => {
+        return [...items].sort((a, b) => {
+          const aSize = estimateItemSizeAndShape(a, categoryName).size;
+          const bSize = estimateItemSizeAndShape(b, categoryName).size;
+          return sizeOrder[aSize] - sizeOrder[bSize];
+        });
+      };
+
+      return (
+        <div className="bag-view">
+          <div className="bag-view-header">
+            <span className="bag-view-title">What's in the bag</span>
+            <span className="bag-view-weight">{formatWeight(getTotalWeight())} total</span>
+          </div>
+          <div className="bag-outline">
+            <div className="bag-category-clusters">
+              {categories.map(cat => {
+                const itemsWithContent = cat.items.filter(item => item.name);
+                if (itemsWithContent.length === 0) return null;
+                const sortedItems = sortItemsBySize(itemsWithContent, cat.name);
+
+                return (
+                  <div key={cat.id} className="bag-cluster">
+                    <div className="bag-cluster-header">
+                      <span className="bag-cluster-icon">{cat.icon}</span>
+                      <span className="bag-cluster-name">{cat.name}</span>
+                      <span className="bag-cluster-weight">{formatWeight(getCategoryWeight(cat))}</span>
+                    </div>
+                    <div className="bag-contents">
+                      {sortedItems.map(item => {
+                        const { size, shape } = estimateItemSizeAndShape(item, cat.name);
+                        const sizeShapeClass = `bag-item-${size}-${shape}`;
+                        return (
+                          <div key={item.id} className={`bag-item ${sizeShapeClass}`} onClick={() => onItemClick && onItemClick(item)}>
+                            {(item.quantity || 1) > 1 && (
+                              <span className="bag-item-qty">×{item.quantity}</span>
+                            )}
+                            <div className="bag-item-image">
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={item.name} />
+                              ) : (
+                                <div className="bag-item-placeholder">{cat.icon || '📦'}</div>
+                              )}
+                            </div>
+                            <div className="bag-item-label">
+                              <span className="bag-item-name">{item.name}</span>
+                              <span className="bag-item-weight">{formatWeight((item.weight || 0) * (item.quantity || 1))}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     // ==================== Gear View ====================
     const GearView = ({ lists, currentListId, onSelectList, onUpdateList, onCreateList, onDuplicateList, onDeleteList, onRenameList }) => {
       const currentList = lists.find(l => l.id === currentListId);
       const [showListMenu, setShowListMenu] = useState(false);
+      const [viewMode, setViewMode] = useState('list'); // 'list' or 'bag'
 
       const handleCategoryUpdate = (updated) => {
         const categories = currentList.categories.map(c => c.id === updated.id ? updated : c);
@@ -1955,7 +3105,8 @@
                 weight: parseFloat(weight) || 0,
                 url: url || '',
                 price: parseFloat(price) || 0,
-                consumable: consumable === '1' || consumable === 'true'
+                consumable: consumable === '1' || consumable === 'true',
+                imageUrl: ''
               });
             });
 
@@ -1988,14 +3139,23 @@
 
       if (!currentList) return null;
 
-      const gearCategories = currentList.categories.filter(c => c.name !== 'Clothes (wear)');
-      const wearCategories = currentList.categories.filter(c => c.name === 'Clothes (wear)');
-
       return (
         <>
           <div className="page-header">
             <h1 className="page-title">Gear</h1>
             <div className="page-header-actions">
+              <div className="view-toggle">
+                <button
+                  className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                  title="List view"
+                >☰</button>
+                <button
+                  className={`view-toggle-btn ${viewMode === 'bag' ? 'active' : ''}`}
+                  onClick={() => setViewMode('bag')}
+                  title="Bag view"
+                >🎒</button>
+              </div>
               <div className="list-selector">
                 <select className="list-dropdown" value={currentListId} onChange={(e) => onSelectList(e.target.value)}>
                   {lists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
@@ -2022,19 +3182,20 @@
             </div>
           </div>
 
-          {gearCategories.map(cat => (
-            <Category key={cat.id} category={cat}
-              onUpdate={handleCategoryUpdate} onDelete={handleCategoryDelete}
-              onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onDeleteItem={handleDeleteItem} />
-          ))}
-
-          <button className="add-category-btn" onClick={handleAddCategory}>+ Add new category</button>
-
-          {wearCategories.map(cat => (
-            <Category key={cat.id} category={cat}
-              onUpdate={handleCategoryUpdate} onDelete={handleCategoryDelete}
-              onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onDeleteItem={handleDeleteItem} />
-          ))}
+          {viewMode === 'list' ? (
+            <>
+              <div className="categories-list">
+                {currentList.categories.map(cat => (
+                  <Category key={cat.id} category={cat}
+                    onUpdate={handleCategoryUpdate} onDelete={handleCategoryDelete}
+                    onAddItem={handleAddItem} onUpdateItem={handleUpdateItem} onDeleteItem={handleDeleteItem} />
+                ))}
+              </div>
+              <button className="add-category-btn" onClick={handleAddCategory}>+ Add new category</button>
+            </>
+          ) : (
+            <BagView categories={currentList.categories} />
+          )}
         </>
       );
     };
@@ -2045,11 +3206,11 @@
       const [showForm, setShowForm] = useState(false);
       const [editingHike, setEditingHike] = useState(null);
       const [formData, setFormData] = useState({
-        name: '', description: '', imageUrl: '', distance: '', elevation: '', duration: '', location: '', status: 'wishlist'
+        name: '', description: '', imageUrl: '', distance: '', elevation: '', duration: '', location: '', status: 'wishlist', gpxData: null
       });
 
       const openNew = () => {
-        setFormData({ name: '', description: '', imageUrl: '', distance: '', elevation: '', duration: '', location: '', status: 'wishlist' });
+        setFormData({ name: '', description: '', imageUrl: '', distance: '', elevation: '', duration: '', location: '', status: 'wishlist', gpxData: null });
         setEditingHike(null);
         setShowForm(true);
       };
@@ -2092,6 +3253,12 @@
               <h3 className="hike-detail-title">About this hike</h3>
               <p className="hike-detail-text">{selectedHike.description || 'No description added yet.'}</p>
             </div>
+
+            {selectedHike.gpxData?.coordinates?.length > 0 && (
+              <div className="hike-detail-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <GPXMap coordinates={selectedHike.gpxData.coordinates} className="map-container-large" />
+              </div>
+            )}
 
             <div className="hike-detail-card">
               <div className="hike-detail-stats">
@@ -2157,51 +3324,87 @@
       );
     };
 
-    const HikeFormModal = ({ formData, setFormData, onSave, onClose, isEditing }) => (
-      <Modal title={isEditing ? 'Edit Hike' : 'New Hike'} onClose={onClose}
-        footer={<><button className="btn btn-secondary" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={onSave}>Save</button></>}>
-        <div className="form-group">
-          <label className="form-label">Name *</label>
-          <input className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. West Highland Way" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Description</label>
-          <textarea className="form-input form-textarea" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the hike..." />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Image URL</label>
-          <input className="form-input" value={formData.imageUrl} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} placeholder="https://..." />
-        </div>
-        <div className="form-row">
+    const HikeFormModal = ({ formData, setFormData, onSave, onClose, isEditing }) => {
+      const handleGPXChange = (gpxData) => {
+        if (gpxData) {
+          const updates = {
+            gpxData: gpxData,
+          };
+          // Auto-fill distance and elevation if not already set
+          if (!formData.distance && gpxData.stats?.distance) {
+            updates.distance = `${gpxData.stats.distance} km`;
+          }
+          if (!formData.elevation && gpxData.stats?.elevationGain) {
+            updates.elevation = `${gpxData.stats.elevationGain}m gain`;
+          }
+          // Use GPX track name if no name set
+          if (!formData.name && gpxData.gpxName) {
+            updates.name = gpxData.gpxName;
+          }
+          setFormData({ ...formData, ...updates });
+        } else {
+          setFormData({ ...formData, gpxData: null });
+        }
+      };
+
+      return (
+        <Modal title={isEditing ? 'Edit Hike' : 'New Hike'} onClose={onClose}
+          footer={<><button className="btn btn-secondary" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={onSave}>Save</button></>}>
           <div className="form-group">
-            <label className="form-label">Distance</label>
-            <input className="form-input" value={formData.distance} onChange={(e) => setFormData({ ...formData, distance: e.target.value })} placeholder="e.g. 154 km" />
+            <label className="form-label">GPX Route File</label>
+            <GPXUpload
+              value={formData.gpxData}
+              onChange={handleGPXChange}
+            />
+          </div>
+          {formData.gpxData?.coordinates?.length > 0 && (
+            <div className="form-group">
+              <GPXMap coordinates={formData.gpxData.coordinates} />
+            </div>
+          )}
+          <div className="form-group">
+            <label className="form-label">Name *</label>
+            <input className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. West Highland Way" />
           </div>
           <div className="form-group">
-            <label className="form-label">Elevation</label>
-            <input className="form-input" value={formData.elevation} onChange={(e) => setFormData({ ...formData, elevation: e.target.value })} placeholder="e.g. 3,690 m" />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Duration</label>
-            <input className="form-input" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} placeholder="e.g. 6 days" />
+            <label className="form-label">Description</label>
+            <textarea className="form-input form-textarea" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the hike..." />
           </div>
           <div className="form-group">
-            <label className="form-label">Location</label>
-            <input className="form-input" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. Scotland" />
+            <label className="form-label">Image URL</label>
+            <input className="form-input" value={formData.imageUrl} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} placeholder="https://..." />
           </div>
-        </div>
-        <div className="form-group">
-          <label className="form-label">Status</label>
-          <select className="form-input" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-            <option value="wishlist">Wishlist</option>
-            <option value="planned">Planned</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-      </Modal>
-    );
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Distance</label>
+              <input className="form-input" value={formData.distance} onChange={(e) => setFormData({ ...formData, distance: e.target.value })} placeholder="e.g. 154 km" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Elevation</label>
+              <input className="form-input" value={formData.elevation} onChange={(e) => setFormData({ ...formData, elevation: e.target.value })} placeholder="e.g. 3,690 m" />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Duration</label>
+              <input className="form-input" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} placeholder="e.g. 6 days" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Location</label>
+              <input className="form-input" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. Scotland" />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select className="form-input" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+              <option value="wishlist">Wishlist</option>
+              <option value="planned">Planned</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </Modal>
+      );
+    };
 
     // ==================== Food View ====================
     const FoodView = ({ recipes, onAddRecipe, onUpdateRecipe, onDeleteRecipe }) => {
@@ -2460,6 +3663,27 @@
         );
       }
 
+      // Calculate speed if we have distance and duration
+      const calculateSpeed = () => {
+        if (!selectedHike?.gpxData?.stats?.distance) return null;
+        const distance = parseFloat(selectedHike.gpxData.stats.distance);
+        // Try to parse duration from hike
+        const durationStr = selectedHike.duration || '';
+        const hoursMatch = durationStr.match(/(\d+)\s*h/i);
+        const daysMatch = durationStr.match(/(\d+)\s*d/i);
+        let hours = 0;
+        if (hoursMatch) hours = parseInt(hoursMatch[1]);
+        if (daysMatch) hours = parseInt(daysMatch[1]) * 8; // Assume 8 hours of walking per day
+        if (hours > 0) return (distance / hours).toFixed(1);
+        return null;
+      };
+
+      const [showFullDescription, setShowFullDescription] = useState(false);
+      const truncateDescription = (text, maxLength = 150) => {
+        if (!text || text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+      };
+
       return (
         <>
           <div className="page-header">
@@ -2467,49 +3691,105 @@
             <button className="btn btn-primary" onClick={handleCreateTrip}>+ Create new trip</button>
           </div>
 
+          {/* Date and People Card */}
           <div className="dashboard-card">
-            <div className="dashboard-card-body">
-              <div className="trip-date-row">
-                📅 Date: <input type="date" value={formData.startDate || ''} onChange={(e) => handleFieldChange('startDate', e.target.value)} style={{ border: 'none', fontWeight: 500 }} />
-                → <input type="date" value={formData.endDate || ''} onChange={(e) => handleFieldChange('endDate', e.target.value)} style={{ border: 'none', fontWeight: 500 }} />
+            <div className="gear-section">
+              <div className="gear-row">
+                <div className="gear-row-left">
+                  <span className="gear-row-label" style={{ fontWeight: 600 }}>Date:</span>
+                  <span style={{ color: '#1c1917' }}>
+                    {formData.startDate ? formatDate(formData.startDate) : 'Start'} → {formData.endDate ? formatDate(formData.endDate) : 'End'}
+                  </span>
+                </div>
                 <OptionsDropdown options={[
+                  { label: 'Edit dates', onClick: () => {
+                    const start = prompt('Start date (YYYY-MM-DD):', formData.startDate || '');
+                    const end = prompt('End date (YYYY-MM-DD):', formData.endDate || '');
+                    if (start) handleFieldChange('startDate', start);
+                    if (end) handleFieldChange('endDate', end);
+                  }},
+                  { divider: true },
                   { label: 'Delete trip', onClick: () => {
                     if (confirm('Delete this trip?')) {
-                      const remaining = trips.filter(t => t.id !== formData.id);
-                      // Handle through parent
+                      // Handle delete through parent
                     }
                   }, danger: true }
                 ]} />
               </div>
-
-              <div className="hike-selector">
-                <div className="hike-selector-label">✏️ Hike:</div>
-                <div className="hike-name">
-                  <select value={formData.hikeId || ''} onChange={(e) => handleFieldChange('hikeId', e.target.value)}>
-                    <option value="">Select a hike...</option>
-                    {hikes.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                  </select>
+            </div>
+            <div className="gear-section">
+              <div className="gear-row">
+                <div className="gear-row-left">
+                  <span className="gear-row-label" style={{ fontWeight: 600 }}>People:</span>
+                  <input
+                    type="text"
+                    value={formData.people || ''}
+                    onChange={(e) => handleFieldChange('people', e.target.value)}
+                    placeholder="Add people..."
+                    style={{ border: 'none', background: 'transparent', fontSize: 14, color: '#1c1917', flex: 1 }}
+                  />
                 </div>
+                <OptionsDropdown options={[
+                  { label: 'Edit people', onClick: () => {
+                    const people = prompt('People joining (comma separated):', formData.people || '');
+                    if (people !== null) handleFieldChange('people', people);
+                  }}
+                ]} />
+              </div>
+            </div>
+          </div>
+
+          {/* Hike Card */}
+          <div className="section-title">Hike</div>
+          <div className="dashboard-card">
+            <div className="dashboard-card-body">
+              <div className="hike-name">
+                <select value={formData.hikeId || ''} onChange={(e) => handleFieldChange('hikeId', e.target.value)}>
+                  <option value="">Select a hike...</option>
+                  {hikes.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </select>
               </div>
 
               {selectedHike && (
                 <>
-                  <p className="hike-description">{selectedHike.description}</p>
+                  <p className="hike-description">
+                    {showFullDescription ? selectedHike.description : truncateDescription(selectedHike.description)}
+                    {selectedHike.description && selectedHike.description.length > 150 && (
+                      <span
+                        onClick={() => setShowFullDescription(!showFullDescription)}
+                        style={{ color: '#3b82f6', cursor: 'pointer', marginLeft: 4 }}
+                      >
+                        {showFullDescription ? 'Show less' : 'Read more'}
+                      </span>
+                    )}
+                  </p>
                   <div className="hike-stats">
-                    {selectedHike.duration && <span className="hike-stat">⏱️ {selectedHike.duration}</span>}
+                    {selectedHike.duration && <span className="hike-stat">🕐 {selectedHike.duration}</span>}
                     {selectedHike.distance && <span className="hike-stat">↔️ {selectedHike.distance}</span>}
-                    {selectedHike.elevation && <span className="hike-stat">↗️ {selectedHike.elevation}</span>}
+                    {calculateSpeed() && <span className="hike-stat">⏱️ {calculateSpeed()} km/h</span>}
+                    {selectedHike.gpxData?.stats?.elevationGain && (
+                      <span className="hike-stat">↗️ {selectedHike.gpxData.stats.elevationGain} m</span>
+                    )}
+                    {selectedHike.gpxData?.stats?.elevationLoss && (
+                      <span className="hike-stat">↘️ {selectedHike.gpxData.stats.elevationLoss} m</span>
+                    )}
                   </div>
-                  <div className="map-placeholder">🗺️ Map placeholder</div>
+                  {selectedHike.gpxData?.coordinates?.length > 0 ? (
+                    <>
+                      <GPXMap coordinates={selectedHike.gpxData.coordinates} />
+                      <ElevationProfile coordinates={selectedHike.gpxData.coordinates} />
+                    </>
+                  ) : (
+                    <div className="map-placeholder">🗺️ Upload a GPX file to see the route</div>
+                  )}
                 </>
               )}
             </div>
           </div>
 
+          {/* Weight Card */}
+          <div className="section-title">Weight</div>
           <div className="dashboard-card">
-            <div className="dashboard-card-header">
-              <span className="dashboard-card-title">Gear</span>
-            </div>
             <div className="gear-section">
               <div className="gear-row">
                 <div className="gear-row-left">
@@ -2556,9 +3836,11 @@
             </div>
           </div>
 
+          {/* Food Menu Card */}
+          <div className="section-title">Food menu</div>
           <div className="dashboard-card">
-            <div className="dashboard-card-header">
-              <span className="dashboard-card-title">Food menu</span>
+            <div className="dashboard-card-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+              <span></span>
               <OptionsDropdown options={[{ label: 'Copy from previous day', onClick: () => {} }]} />
             </div>
 

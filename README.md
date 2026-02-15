@@ -1,11 +1,13 @@
-## Ultralight Packing App
+## Outside.fun
 
-This repository currently contains a **single-page ultralight backpacking trip planner**, implemented as standalone HTML files that run React in the browser (via CDN + Babel). It is a working prototype for planning lightweight hiking trips and can later be evolved into the full Next.js/TypeScript app described in `CLAUDE.md`.
+An ultralight backpacking trip planner — plan your hikes, manage your gear, track your food, and optimize your pack weight.
+
+Built as a standalone single-page React app that runs directly in the browser (via CDN + Babel). No build step required.
 
 ### Features
 
 - **Trip dashboard**
-  - Plan an upcoming hike with start/end dates.
+  - Plan upcoming hikes with start/end dates.
   - Link a hike entry, choose a gear list, and set water quantity.
   - Build a per-day food plan (breakfast, lunch, dinner, snacks) from the recipe library.
   - See total base weight, food weight, water weight, and overall pack weight.
@@ -16,6 +18,8 @@ This repository currently contains a **single-page ultralight backpacking trip p
 - **Gear**
   - Manage multiple gear lists with predefined categories (backpack, sleep & shelter, electronics, food gear, clothing, etc.).
   - Track quantity and weight (in grams) for each item.
+  - Visual "bag view" showing items as product images in a masonry grid grouped by category.
+  - Auto-fill weights from the Featherweight open-source database (40,000+ items).
   - Import/export gear lists as CSV.
   - Visualize weight distribution by category using a pie chart.
 
@@ -26,37 +30,35 @@ This repository currently contains a **single-page ultralight backpacking trip p
 - **Persistence**
   - All data (trips, hikes, gear, recipes) is stored in the browser using `localStorage` (no backend).
 
-- **GPX routes (enhanced app)**
-  - The `ultralight-packing-app.html` variant adds GPX support:
-    - Upload a GPX file and display the route on a map with Leaflet.
-    - Show an elevation profile chart.
-    - Auto-fill hike stats (distance, elevation, track name) from the GPX.
+- **GPX routes**
+  - Upload a GPX file and display the route on a map with Leaflet.
+  - Show an elevation profile chart.
+  - Auto-fill hike stats (distance, elevation, track name) from the GPX.
 
 ### Files
 
-- `index.html` – core ultralight packing app (trips, hikes, gear, recipes).
-- `ultralight-packing-app.html` – extended version with GPX import, map, and elevation profile.
-- `CLAUDE.md` – high-level guidelines for a future Next.js/TypeScript implementation.
+- `outside.html` – main app with GPX import, map, elevation profile, bag view, and Featherweight integration.
+- `index.html` – earlier version of the app (trips, hikes, gear, recipes).
+- `fonts/` – Agipo font files (Regular + Bold).
+- `app/` – Next.js + TypeScript playground for UX experiments.
+- `CLAUDE.md` – guidelines for future Next.js/TypeScript implementation.
 
-### Running the legacy HTML app
+### Running the app
 
-No build step is required. You can:
+No build step is required:
 
-1. Open `ultralight-packing-app.html` (or `index.html`) directly in a modern browser, **or**
-2. Serve the project with a simple static server, for example:
+1. Open `outside.html` directly in a modern browser, **or**
+2. Serve the project with a simple static server:
 
 ```bash
-cd /path/to/Claude
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000/ultralight-packing-app.html` in your browser.
+Then open `http://localhost:8000/outside.html` in your browser.
 
-### Running the Next.js playground (for UX experiments)
+### Running the Next.js playground
 
-A separate Next.js + TypeScript + Tailwind app lives in the `app` directory. It includes a `/playground` route designed as a **UX sandbox** for experimenting with layouts, visual styles, and component states.
-
-From the repo root:
+A separate Next.js + TypeScript + Tailwind app lives in the `app` directory for UX experiments.
 
 ```bash
 cd app
@@ -65,5 +67,3 @@ npm run dev
 ```
 
 Then open `http://localhost:3000/playground` in your browser.
-
-
