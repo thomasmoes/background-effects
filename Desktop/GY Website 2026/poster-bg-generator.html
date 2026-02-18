@@ -360,6 +360,64 @@ input[type="range"]::-moz-range-thumb {
 [data-mode="image"] .image-controls { display: contents; }
 [data-mode="image"] .procedural-controls { display: none; }
 
+/* Animation controls — only visible in image mode */
+.animation-section { display: none; }
+[data-mode="image"] .animation-section { display: flex; flex-direction: column; gap: 6px; }
+
+.anim-buttons {
+  display: flex;
+  gap: 6px;
+}
+.anim-buttons .btn {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.btn-play { background: var(--accent); color: #1a1a1e; }
+.btn-play:hover { background: var(--accent-hover); }
+.btn-play.active { background: #6a9f4a; color: #fff; }
+.btn-stop { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-stop:hover { background: var(--surface-hover); }
+
+.direction-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+.dir-btn {
+  background: var(--surface);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 0;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.dir-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.dir-btn.active { background: var(--accent); color: #1a1a1e; border-color: var(--accent); }
+
+.record-status {
+  font-size: 11px;
+  color: var(--accent);
+  text-align: center;
+  padding: 4px 0;
+}
+.record-status .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #c44;
+  border-radius: 50%;
+  margin-right: 4px;
+  animation: blink 1s infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
   .sidebar { border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
@@ -480,6 +538,66 @@ input[type="range"]::-moz-range-thumb {
       <label>Seed</label>
       <div class="seed-row">
         <input type="text" id="seedInput" value="">
+      </div>
+    </div>
+
+    <!-- Animation controls (image mode only) -->
+    <div class="animation-section">
+      <div class="divider"></div>
+      <div class="control-group">
+        <label>Animation</label>
+        <div class="anim-buttons">
+          <button class="btn btn-play" id="playBtn">&#9654; Play</button>
+          <button class="btn btn-stop" id="stopBtn">&#9632; Stop</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Speed <span id="animSpeedVal">0.5</span></label>
+        <input type="range" id="animSpeedRange" min="2" max="20" value="5" step="1">
+      </div>
+
+      <div class="control-group">
+        <label>Direction</label>
+        <div class="direction-grid">
+          <div class="dir-btn" data-dir="nw">&#8598;</div>
+          <div class="dir-btn" data-dir="n">&#8593;</div>
+          <div class="dir-btn" data-dir="ne">&#8599;</div>
+          <div class="dir-btn active" data-dir="random">&#8635;</div>
+          <div class="dir-btn" data-dir="w">&#8592;</div>
+          <div class="dir-btn" data-dir="s">&#8595;</div>
+          <div class="dir-btn" data-dir="e">&#8594;</div>
+          <div class="dir-btn" data-dir="se">&#8600;</div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Effects</label>
+        <div class="toggle-row"><input type="checkbox" id="grainShimmer" checked><span>Grain shimmer</span></div>
+        <div class="toggle-row"><input type="checkbox" id="zoomDrift"><span>Zoom drift</span></div>
+        <div class="toggle-row"><input type="checkbox" id="warmthDrift"><span>Warmth drift</span></div>
+        <div class="toggle-row"><input type="checkbox" id="breathingBlur"><span>Breathing blur</span></div>
+        <div class="toggle-row"><input type="checkbox" id="pulsingVignette"><span>Pulsing vignette</span></div>
+        <div class="toggle-row"><input type="checkbox" id="saturationDrift"><span>Saturation drift</span></div>
+        <div class="toggle-row"><input type="checkbox" id="exposureFlicker"><span>Exposure flicker</span></div>
+        <div class="toggle-row"><input type="checkbox" id="colorGradingShift"><span>Color grading shift</span></div>
+        <div class="toggle-row"><input type="checkbox" id="lightLeaks"><span>Light leaks</span></div>
+        <div class="toggle-row"><input type="checkbox" id="filmDust"><span>Film dust & scratches</span></div>
+        <div class="toggle-row"><input type="checkbox" id="chromaticAberration"><span>Chromatic aberration</span></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <label>Export Video</label>
+        <div class="control-group">
+          <label>Duration <span id="exportDurVal">10s</span></label>
+          <input type="range" id="exportDurRange" min="5" max="30" value="10">
+        </div>
+        <button class="btn btn-secondary" id="recordBtn">Record WebM</button>
+        <div class="record-status" id="recordStatus" style="display:none">
+          <span class="dot"></span><span id="recordTime">0s</span>
+        </div>
       </div>
     </div>
 
@@ -1122,11 +1240,617 @@ class BackgroundGenerator {
 }
 
 // ============================================================
+// Animation Controller
+// ============================================================
+class AnimationController {
+  constructor(canvas, generator, imageLib) {
+    this.canvas = canvas;
+    this.generator = generator;
+    this.imageLib = imageLib;
+    this.running = false;
+    this.rafId = null;
+    this.frameCount = 0;
+
+    // Pan state
+    this.panX = 0;
+    this.panY = 0;
+    this.dx = 0;
+    this.dy = 0;
+    this.baseCrop = null;
+    this.entry = null;
+
+    // Pre-cached assets
+    this.grainTiles = [];
+    this.vignetteCanvas = null;
+
+    // Frame timing
+    this.targetInterval = 1000 / 20; // 20fps
+    this.lastFrameTime = 0;
+
+    // Light leaks state
+    this.leaks = [];
+
+    // Film dust overlays
+    this.dustOverlays = [];
+
+    // Exposure flicker state
+    this.flickerFramesLeft = 0;
+    this.flickerAlpha = 0;
+
+    // Recording
+    this.recording = false;
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
+    this.recordStartTime = 0;
+    this.recordDuration = 0;
+    this.recordCanvas = null;
+    this.recordTimerId = null;
+  }
+
+  start(state) {
+    if (this.running) return;
+    if (!this.imageLib || this.imageLib.images.length === 0) return;
+
+    this.running = true;
+    this.frameCount = 0;
+    this.lastFrameTime = 0;
+
+    // Pick source image and base crop
+    const prng = new PRNG(state.seed);
+    this.entry = this.imageLib.getEntry(prng);
+    if (!this.entry) { this.running = false; return; }
+
+    // Get preview canvas dimensions
+    const pw = this.canvas.width || state.width;
+    const ph = this.canvas.height || state.height;
+    const targetAspect = pw / ph;
+
+    // Calculate base crop — use a wider crop to allow pan room
+    const panPadding = 0.85; // crop at 85% of what getCrop would give, leaving room to pan
+    this.baseCrop = this.imageLib.getCrop(prng, this.entry, targetAspect, (state.cropScale || 50) * panPadding, state.avoidText !== false);
+
+    // Initial pan position
+    this.panX = 0;
+    this.panY = 0;
+
+    // Direction
+    this.setDirection(state.animDirection || 'random', prng);
+
+    // Pre-cache grain tiles
+    this.preCacheGrainTiles(pw, ph, state.grain || 20);
+
+    // Pre-cache vignette
+    this.preCacheVignette(pw, ph, state.vignette || 15);
+
+    // Pre-cache dust overlays
+    this.preCacheDustOverlays(pw, ph);
+
+    // Initialize light leaks
+    this.initLightLeaks();
+
+    // Reset flicker state
+    this.flickerFramesLeft = 0;
+    this.flickerAlpha = 0;
+
+    // Start loop
+    this.rafId = requestAnimationFrame((t) => this.loop(t, state));
+  }
+
+  stop() {
+    this.running = false;
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+
+  setDirection(dir, prng) {
+    const speed = 1; // normalized, actual speed applied per-frame
+    const dirs = {
+      n: [0, -1], ne: [0.7, -0.7], e: [1, 0], se: [0.7, 0.7],
+      s: [0, 1], sw: [-0.7, 0.7], w: [-1, 0], nw: [-0.7, -0.7],
+    };
+    if (dir === 'random' || !dirs[dir]) {
+      const angle = (prng || new PRNG(Date.now())).range(0, Math.PI * 2);
+      this.dx = Math.cos(angle) * speed;
+      this.dy = Math.sin(angle) * speed;
+    } else {
+      this.dx = dirs[dir][0] * speed;
+      this.dy = dirs[dir][1] * speed;
+    }
+  }
+
+  preCacheGrainTiles(w, h, intensity) {
+    this.grainTiles = [];
+    if (intensity <= 0) return;
+    for (let i = 0; i < 6; i++) {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d');
+
+      // Generate unique 256x256 grain tile
+      const tile = document.createElement('canvas');
+      tile.width = 256;
+      tile.height = 256;
+      const tctx = tile.getContext('2d');
+      const img = tctx.createImageData(256, 256);
+      const d = img.data;
+      for (let j = 0; j < d.length; j += 4) {
+        const u1 = Math.random() || 0.001;
+        const u2 = Math.random();
+        const g = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        const v = Math.round(128 + g * intensity);
+        d[j]     = Math.max(0, Math.min(255, v + 2));
+        d[j + 1] = Math.max(0, Math.min(255, v));
+        d[j + 2] = Math.max(0, Math.min(255, v - 2));
+        d[j + 3] = 255;
+      }
+      tctx.putImageData(img, 0, 0);
+
+      // Tile it across the full canvas
+      const pat = ctx.createPattern(tile, 'repeat');
+      ctx.fillStyle = pat;
+      ctx.fillRect(0, 0, w, h);
+
+      this.grainTiles.push(c);
+    }
+  }
+
+  preCacheVignette(w, h, vignette) {
+    if (vignette <= 0) { this.vignetteCanvas = null; return; }
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d');
+    const cx = w / 2, cy = h / 2;
+    const maxR = Math.sqrt(cx * cx + cy * cy);
+    const grad = ctx.createRadialGradient(cx, cy, maxR * 0.3, cx, cy, maxR);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(0,0,0,${vignette / 100})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    this.vignetteCanvas = c;
+  }
+
+  preCacheDustOverlays(w, h) {
+    this.dustOverlays = [];
+    for (let i = 0; i < 4; i++) {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d');
+
+      // Random dust particles
+      const particleCount = 20 + Math.floor(Math.random() * 25);
+      for (let j = 0; j < particleCount; j++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const r = 0.5 + Math.random() * 1.5;
+        const brightness = 180 + Math.floor(Math.random() * 75);
+        const alpha = 0.2 + Math.random() * 0.4;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${brightness},${brightness},${brightness - 10},${alpha})`;
+        ctx.fill();
+      }
+
+      // Faint vertical scratch lines
+      const scratchCount = 2 + Math.floor(Math.random() * 4);
+      for (let j = 0; j < scratchCount; j++) {
+        const x = Math.random() * w;
+        const startY = Math.random() * h * 0.3;
+        const length = h * (0.3 + Math.random() * 0.5);
+        const alpha = 0.05 + Math.random() * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x + (Math.random() - 0.5) * 2, startY + length);
+        ctx.strokeStyle = `rgba(220,215,200,${alpha})`;
+        ctx.lineWidth = 0.5 + Math.random() * 0.5;
+        ctx.stroke();
+      }
+
+      this.dustOverlays.push(c);
+    }
+  }
+
+  initLightLeaks() {
+    this.leaks = [];
+  }
+
+  updateLightLeaks(w, h) {
+    // Spawn new leaks
+    if (this.leaks.length < 3 && Math.random() < 0.01) { // ~1 new leak every 50 frames
+      const colors = [
+        [255, 180, 80],  // amber
+        [255, 160, 100], // orange
+        [255, 200, 150], // peach
+        [220, 170, 90],  // gold
+      ];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      this.leaks.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        radius: w * (0.15 + Math.random() * 0.25),
+        dx: (Math.random() - 0.5) * 0.5,
+        dy: (Math.random() - 0.5) * 0.3,
+        opacity: 0,
+        maxOpacity: 0.06 + Math.random() * 0.08,
+        phase: 0, // 0=fade in, 1=hold, 2=fade out
+        life: 0,
+        maxLife: 60 + Math.floor(Math.random() * 100), // 3-8 seconds at 20fps
+        color,
+      });
+    }
+
+    // Update existing leaks
+    for (let i = this.leaks.length - 1; i >= 0; i--) {
+      const leak = this.leaks[i];
+      leak.life++;
+      leak.x += leak.dx;
+      leak.y += leak.dy;
+
+      const fadeInEnd = leak.maxLife * 0.2;
+      const fadeOutStart = leak.maxLife * 0.7;
+
+      if (leak.life < fadeInEnd) {
+        leak.opacity = leak.maxOpacity * (leak.life / fadeInEnd);
+      } else if (leak.life > fadeOutStart) {
+        leak.opacity = leak.maxOpacity * (1 - (leak.life - fadeOutStart) / (leak.maxLife - fadeOutStart));
+      } else {
+        leak.opacity = leak.maxOpacity;
+      }
+
+      if (leak.life >= leak.maxLife) {
+        this.leaks.splice(i, 1);
+      }
+    }
+  }
+
+  loop(timestamp, state) {
+    if (!this.running) return;
+
+    // Frame rate limiter
+    if (timestamp - this.lastFrameTime < this.targetInterval) {
+      this.rafId = requestAnimationFrame((t) => this.loop(t, state));
+      return;
+    }
+    this.lastFrameTime = timestamp;
+
+    // Render to preview canvas
+    this.renderFrame(state);
+
+    // Also render to recording canvas if recording
+    if (this.recording && this.recordCanvas) {
+      this.renderFrame(state, this.recordCanvas);
+    }
+
+    this.frameCount++;
+    this.rafId = requestAnimationFrame((t) => this.loop(t, state));
+  }
+
+  renderFrame(state, targetCanvas) {
+    const canvas = targetCanvas || this.canvas;
+    const w = canvas.width;
+    const h = canvas.height;
+    const ctx = canvas.getContext('2d');
+    const fc = this.frameCount;
+
+    if (!this.entry || !this.baseCrop) return;
+
+    const speed = (state.animSpeed || 0.5);
+
+    // Advance pan
+    this.panX += this.dx * speed;
+    this.panY += this.dy * speed;
+
+    // Bounce-clamp within trimmed image bounds
+    const trim = this.entry.trim;
+    const crop = this.baseCrop;
+    const sx = crop.sx + this.panX;
+    const sy = crop.sy + this.panY;
+
+    if (sx < trim.x || sx + crop.sw > trim.x + trim.w) {
+      this.dx = -this.dx;
+      this.panX += this.dx * speed * 2;
+    }
+    if (sy < trim.y || sy + crop.sh > trim.y + trim.h) {
+      this.dy = -this.dy;
+      this.panY += this.dy * speed * 2;
+    }
+
+    const clampedSx = Math.max(trim.x, Math.min(trim.x + trim.w - crop.sw, crop.sx + this.panX));
+    const clampedSy = Math.max(trim.y, Math.min(trim.y + trim.h - crop.sh, crop.sy + this.panY));
+
+    // Zoom drift
+    let drawSw = crop.sw, drawSh = crop.sh;
+    let drawSx = clampedSx, drawSy = clampedSy;
+    if (state.zoomDrift) {
+      const zoomPhase = (fc / 160) * Math.PI * 2;
+      const zoomScale = 1 + Math.sin(zoomPhase) * 0.03;
+      const newSw = crop.sw * zoomScale;
+      const newSh = crop.sh * zoomScale;
+      drawSx = clampedSx - (newSw - crop.sw) / 2;
+      drawSy = clampedSy - (newSh - crop.sh) / 2;
+      drawSw = newSw;
+      drawSh = newSh;
+      drawSx = Math.max(trim.x, Math.min(trim.x + trim.w - drawSw, drawSx));
+      drawSy = Math.max(trim.y, Math.min(trim.y + trim.h - drawSh, drawSy));
+    }
+
+    // ── Step 1: Source crop ──
+    const offscreen = document.createElement('canvas');
+    offscreen.width = w;
+    offscreen.height = h;
+    const octx = offscreen.getContext('2d');
+
+    if (state.chromaticAberration) {
+      // Chromatic aberration: draw source 3x with RGB channel offsets
+      const caPhase = (fc / 200) * Math.PI * 2; // ~10s cycle
+      const offset = 1 + Math.sin(caPhase) * 2; // 1-3px oscillating
+
+      // Draw base image
+      octx.drawImage(this.entry.img, drawSx, drawSy, drawSw, drawSh, 0, 0, w, h);
+
+      // Red channel — shift left
+      const rCanvas = document.createElement('canvas');
+      rCanvas.width = w; rCanvas.height = h;
+      const rCtx = rCanvas.getContext('2d');
+      rCtx.drawImage(this.entry.img, drawSx, drawSy, drawSw, drawSh, -offset, 0, w, h);
+      // Mask to red only
+      rCtx.globalCompositeOperation = 'multiply';
+      rCtx.fillStyle = '#ff0000';
+      rCtx.fillRect(0, 0, w, h);
+
+      // Blue channel — shift right
+      const bCanvas = document.createElement('canvas');
+      bCanvas.width = w; bCanvas.height = h;
+      const bCtx = bCanvas.getContext('2d');
+      bCtx.drawImage(this.entry.img, drawSx, drawSy, drawSw, drawSh, offset, 0, w, h);
+      bCtx.globalCompositeOperation = 'multiply';
+      bCtx.fillStyle = '#0000ff';
+      bCtx.fillRect(0, 0, w, h);
+
+      // Green channel (centered)
+      const gCanvas = document.createElement('canvas');
+      gCanvas.width = w; gCanvas.height = h;
+      const gCtx = gCanvas.getContext('2d');
+      gCtx.drawImage(this.entry.img, drawSx, drawSy, drawSw, drawSh, 0, 0, w, h);
+      gCtx.globalCompositeOperation = 'multiply';
+      gCtx.fillStyle = '#00ff00';
+      gCtx.fillRect(0, 0, w, h);
+
+      // Combine channels
+      octx.clearRect(0, 0, w, h);
+      octx.globalCompositeOperation = 'screen';
+      octx.drawImage(rCanvas, 0, 0);
+      octx.drawImage(gCanvas, 0, 0);
+      octx.drawImage(bCanvas, 0, 0);
+      octx.globalCompositeOperation = 'source-over';
+    } else {
+      octx.drawImage(this.entry.img, drawSx, drawSy, drawSw, drawSh, 0, 0, w, h);
+    }
+
+    // ── Step 2: Blur + saturate (with breathing blur + saturation drift) ──
+    ctx.clearRect(0, 0, w, h);
+    let blur = state.blur || 60;
+    let saturation = state.saturation || 75;
+
+    if (state.breathingBlur) {
+      const breathPhase = (fc / 240) * Math.PI * 2; // ~12s cycle
+      blur = blur * (1 + Math.sin(breathPhase) * 0.15); // ±15%
+    }
+    if (state.saturationDrift) {
+      const satPhase = (fc / 500) * Math.PI * 2; // ~25s cycle
+      saturation = saturation * (1 + Math.sin(satPhase) * 0.2); // ±20%
+      saturation = Math.max(20, Math.min(100, saturation));
+    }
+
+    ctx.filter = `blur(${blur}px) saturate(${saturation / 100})`;
+    const pad = blur * 2;
+    ctx.drawImage(offscreen, -pad, -pad, w + pad * 2, h + pad * 2);
+    ctx.filter = 'none';
+
+    // ── Step 3: Warmth / Color grading ──
+    if (state.colorGradingShift) {
+      // Rotate through 4 color stops: amber → olive → dusty rose → slate blue
+      const gradeColors = [
+        [180, 140, 80],   // amber
+        [120, 150, 80],   // olive
+        [170, 120, 130],  // dusty rose
+        [100, 130, 170],  // slate blue
+      ];
+      const gradePhase = (fc / 800) * gradeColors.length; // ~40s full cycle
+      const idx = Math.floor(gradePhase) % gradeColors.length;
+      const nextIdx = (idx + 1) % gradeColors.length;
+      const t = gradePhase - Math.floor(gradePhase);
+
+      const c = gradeColors[idx];
+      const n = gradeColors[nextIdx];
+      const r = Math.round(c[0] + (n[0] - c[0]) * t);
+      const g = Math.round(c[1] + (n[1] - c[1]) * t);
+      const b = Math.round(c[2] + (n[2] - c[2]) * t);
+
+      ctx.globalCompositeOperation = 'color';
+      ctx.fillStyle = `rgba(${r},${g},${b},0.12)`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'source-over';
+    } else {
+      let warmth = state.warmth || 0;
+      if (state.warmthDrift) {
+        const warmPhase = (fc / 400) * Math.PI * 2; // ~20s cycle
+        warmth = warmth + Math.sin(warmPhase) * 10; // ±10 units
+      }
+      if (warmth !== 0) {
+        ctx.globalCompositeOperation = 'color';
+        ctx.fillStyle = warmth > 0
+          ? `rgba(180, 140, 80, ${Math.abs(warmth) / 100})`
+          : `rgba(80, 120, 180, ${Math.abs(warmth) / 100})`;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+
+    // ── Step 4: Grain (pre-cached tile cycling) ──
+    if (this.grainTiles.length > 0) {
+      const grainIdx = state.grainShimmer
+        ? fc % this.grainTiles.length
+        : 0;
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = 0.4;
+      ctx.drawImage(this.grainTiles[grainIdx], 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // ── Step 5: Vignette (with pulsing) ──
+    if (this.vignetteCanvas) {
+      if (state.pulsingVignette) {
+        const vigPhase = (fc / 300) * Math.PI * 2; // ~15s cycle
+        const vigAlpha = 0.6 + Math.sin(vigPhase) * 0.4; // oscillate 0.2 to 1.0
+        ctx.globalAlpha = vigAlpha;
+        ctx.drawImage(this.vignetteCanvas, 0, 0);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.drawImage(this.vignetteCanvas, 0, 0);
+      }
+    }
+
+    // ── Step 6: Light leaks ──
+    if (state.lightLeaks) {
+      this.updateLightLeaks(w, h);
+      ctx.globalCompositeOperation = 'screen';
+      for (const leak of this.leaks) {
+        if (leak.opacity <= 0) continue;
+        const grad = ctx.createRadialGradient(leak.x, leak.y, 0, leak.x, leak.y, leak.radius);
+        const [lr, lg, lb] = leak.color;
+        grad.addColorStop(0, `rgba(${lr},${lg},${lb},${leak.opacity})`);
+        grad.addColorStop(0.5, `rgba(${lr},${lg},${lb},${leak.opacity * 0.4})`);
+        grad.addColorStop(1, `rgba(${lr},${lg},${lb},0)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(leak.x - leak.radius, leak.y - leak.radius, leak.radius * 2, leak.radius * 2);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // ── Step 7: Film dust & scratches ──
+    if (state.filmDust && this.dustOverlays.length > 0) {
+      const dustIdx = Math.floor(fc / 10) % this.dustOverlays.length; // change every ~0.5s
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.35;
+      ctx.drawImage(this.dustOverlays[dustIdx], 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // ── Step 8: Exposure flicker ──
+    if (state.exposureFlicker) {
+      if (this.flickerFramesLeft > 0) {
+        ctx.fillStyle = `rgba(0,0,0,${this.flickerAlpha})`;
+        ctx.fillRect(0, 0, w, h);
+        this.flickerFramesLeft--;
+      } else if (Math.random() < 0.05) { // ~5% chance per frame
+        this.flickerFramesLeft = 1 + Math.floor(Math.random() * 3); // 1-3 frames
+        this.flickerAlpha = 0.05 + Math.random() * 0.10; // 5-15% darkening
+      }
+    }
+  }
+
+  // Video recording
+  startRecording(state, duration) {
+    if (this.recording) return;
+
+    this.recordDuration = duration * 1000; // ms
+    this.recordedChunks = [];
+
+    // Create export canvas at full resolution
+    this.recordCanvas = document.createElement('canvas');
+    this.recordCanvas.width = state.width;
+    this.recordCanvas.height = state.height;
+
+    // Re-cache assets at export resolution if different from preview
+    if (this.recordCanvas.width !== this.canvas.width || this.recordCanvas.height !== this.canvas.height) {
+      this.preCacheGrainTiles(state.width, state.height, state.grain || 20);
+      this.preCacheVignette(state.width, state.height, state.vignette || 15);
+      this.preCacheDustOverlays(state.width, state.height);
+    }
+
+    // Setup if not already running, use same crop
+    if (!this.entry) {
+      const prng = new PRNG(state.seed);
+      this.entry = this.imageLib.getEntry(prng);
+      if (!this.entry) return;
+      const targetAspect = state.width / state.height;
+      const panPadding = 0.85;
+      this.baseCrop = this.imageLib.getCrop(prng, this.entry, targetAspect, (state.cropScale || 50) * panPadding, state.avoidText !== false);
+      this.panX = 0;
+      this.panY = 0;
+      this.setDirection(state.animDirection || 'random', prng);
+    }
+
+    const stream = this.recordCanvas.captureStream(20);
+    this.mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 8000000,
+    });
+
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) this.recordedChunks.push(e.data);
+    };
+
+    this.mediaRecorder.onstop = () => {
+      const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `vintage-bg-${state.seed}.webm`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      this.recording = false;
+
+      // Restore preview-size caches
+      const pw = this.canvas.width;
+      const ph = this.canvas.height;
+      this.preCacheGrainTiles(pw, ph, state.grain || 20);
+      this.preCacheVignette(pw, ph, state.vignette || 15);
+      this.preCacheDustOverlays(pw, ph);
+    };
+
+    this.recording = true;
+    this.recordStartTime = performance.now();
+    this.mediaRecorder.start();
+
+    // Start a dedicated recording loop
+    if (!this.running) {
+      this.running = true;
+      this.frameCount = 0;
+      this.lastFrameTime = 0;
+    }
+
+    this.recordTimerId = setInterval(() => {
+      const elapsed = performance.now() - this.recordStartTime;
+      if (elapsed >= this.recordDuration) {
+        this.stopRecording();
+      }
+    }, 200);
+  }
+
+  stopRecording() {
+    if (!this.recording) return;
+    clearInterval(this.recordTimerId);
+    this.mediaRecorder.stop();
+    // recording flag cleared in onstop handler
+  }
+
+}
+
+// ============================================================
 // UI Controller
 // ============================================================
 const generator = new BackgroundGenerator();
 const imageLib = new ImageLibrary();
 const mainCanvas = document.getElementById('mainCanvas');
+const animController = new AnimationController(mainCanvas, generator, imageLib);
 
 let state = {
   mode: 'procedural',
@@ -1141,6 +1865,21 @@ let state = {
   seed: Math.floor(Math.random() * 999999) + 1,
   cropScale: 50,
   avoidText: true,
+  // Animation state
+  animSpeed: 0.5,
+  animDirection: 'random',
+  grainShimmer: true,
+  zoomDrift: false,
+  warmthDrift: false,
+  breathingBlur: false,
+  pulsingVignette: false,
+  saturationDrift: false,
+  exposureFlicker: false,
+  colorGradingShift: false,
+  lightLeaks: false,
+  filmDust: false,
+  chromaticAberration: false,
+  exportDuration: 10,
 };
 
 let renderTimeout = null;
@@ -1163,8 +1902,15 @@ function getOptions(seed) {
   };
 }
 
+function stopAnimation() {
+  animController.stop();
+  document.getElementById('playBtn').classList.remove('active');
+  document.getElementById('playBtn').innerHTML = '&#9654; Play';
+}
+
 function setMode(mode) {
   state.mode = mode;
+  if (mode === 'procedural') stopAnimation();
   document.getElementById('sidebar').dataset.mode = mode;
   document.getElementById('modeImage').classList.toggle('active', mode === 'image');
   document.getElementById('modeProcedural').classList.toggle('active', mode === 'procedural');
@@ -1340,6 +2086,7 @@ function renderVariations() {
 }
 
 function scheduleRender() {
+  stopAnimation();
   clearTimeout(renderTimeout);
   renderTimeout = setTimeout(() => {
     renderMain();
@@ -1348,6 +2095,7 @@ function scheduleRender() {
 }
 
 function randomize() {
+  stopAnimation();
   state.seed = Math.floor(Math.random() * 999999) + 1;
   document.getElementById('seedInput').value = state.seed;
   renderMain();
@@ -1425,6 +2173,110 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     randomize();
   }
+});
+
+// Animation UI wiring
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (animController.running) {
+    stopAnimation();
+    return;
+  }
+  if (state.mode !== 'image' || imageLib.images.length === 0) return;
+
+  // Set canvas to preview container size for smooth animation
+  const container = document.querySelector('.preview-container');
+  const cw = container.clientWidth;
+  const ch = container.clientHeight;
+  // Use a reasonable preview size
+  const aspect = state.width / state.height;
+  let pw, ph;
+  if (cw / ch > aspect) {
+    ph = Math.min(ch, 600);
+    pw = Math.round(ph * aspect);
+  } else {
+    pw = Math.min(cw, 900);
+    ph = Math.round(pw / aspect);
+  }
+  mainCanvas.width = pw;
+  mainCanvas.height = ph;
+
+  document.getElementById('playBtn').classList.add('active');
+  document.getElementById('playBtn').innerHTML = '&#10074;&#10074; Pause';
+  animController.start(state);
+});
+
+document.getElementById('stopBtn').addEventListener('click', () => {
+  stopAnimation();
+  // Re-render static frame
+  renderMain();
+});
+
+// Speed slider
+document.getElementById('animSpeedRange').addEventListener('input', (e) => {
+  state.animSpeed = parseInt(e.target.value) / 10;
+  document.getElementById('animSpeedVal').textContent = state.animSpeed.toFixed(1);
+});
+
+// Direction buttons
+document.querySelectorAll('.dir-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.animDirection = btn.dataset.dir;
+    if (animController.running) {
+      animController.setDirection(state.animDirection);
+    }
+  });
+});
+
+// Effect toggles
+const effectToggles = [
+  'grainShimmer', 'zoomDrift', 'warmthDrift', 'breathingBlur',
+  'pulsingVignette', 'saturationDrift', 'exposureFlicker',
+  'colorGradingShift', 'lightLeaks', 'filmDust', 'chromaticAberration'
+];
+effectToggles.forEach(id => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    state[id] = e.target.checked;
+  });
+});
+
+// Export duration slider
+document.getElementById('exportDurRange').addEventListener('input', (e) => {
+  state.exportDuration = parseInt(e.target.value);
+  document.getElementById('exportDurVal').textContent = state.exportDuration + 's';
+});
+
+// Record button
+document.getElementById('recordBtn').addEventListener('click', () => {
+  if (animController.recording) {
+    animController.stopRecording();
+    document.getElementById('recordStatus').style.display = 'none';
+    document.getElementById('recordBtn').textContent = 'Record WebM';
+    return;
+  }
+
+  // Ensure animation is running
+  if (!animController.running) {
+    document.getElementById('playBtn').click();
+  }
+
+  animController.startRecording(state, state.exportDuration);
+
+  document.getElementById('recordBtn').textContent = 'Cancel Recording';
+  document.getElementById('recordStatus').style.display = 'block';
+
+  // Update recording time display
+  const statusInterval = setInterval(() => {
+    if (!animController.recording) {
+      clearInterval(statusInterval);
+      document.getElementById('recordStatus').style.display = 'none';
+      document.getElementById('recordBtn').textContent = 'Record WebM';
+      return;
+    }
+    const elapsed = Math.round((performance.now() - animController.recordStartTime) / 1000);
+    document.getElementById('recordTime').textContent = `${elapsed}s / ${state.exportDuration}s`;
+  }, 250);
 });
 
 // Init: restore library from localStorage, then render
